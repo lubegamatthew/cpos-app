@@ -14,7 +14,7 @@ void main() {
     await tester.pumpWidget(const MyApp());
 
     // Verify that the dashboard title is displayed.
-    expect(find.text('Point of Sale'), findsOneWidget);
+    expect(find.text('Point of Sale'), findsWidgets);
     expect(find.text('Today\'s Revenue'), findsOneWidget);
     expect(find.text('Recent Orders'), findsOneWidget);
     expect(find.text('Quick Actions'), findsOneWidget);

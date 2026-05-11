@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 void main() {
   runApp(const MyApp());
@@ -24,6 +25,7 @@ class MyApp extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
           ),
         ),
+        textTheme: GoogleFonts.poppinsTextTheme(),
       ),
       home: const POSDashboard(),
     );
@@ -53,13 +55,15 @@ class Order {
 
 class _POSDashboardState extends State<POSDashboard> {
   int _selectedIndex = 0;
+  bool _sidebarOpen = false;
+  bool _financialReportsExpanded = false;
 
   final List<Order> _recentOrders = [
-    Order(id: '#1001', customer: 'John Smith', amount: 45.50, status: 'Completed'),
-    Order(id: '#1002', customer: 'Sarah Johnson', amount: 78.25, status: 'Completed'),
-    Order(id: '#1003', customer: 'Mike Wilson', amount: 32.00, status: 'Pending'),
-    Order(id: '#1004', customer: 'Emma Davis', amount: 95.75, status: 'Completed'),
-    Order(id: '#1005', customer: 'Alex Brown', amount: 18.50, status: 'Completed'),
+    Order(id: '#1001', customer: 'John Smith', amount: 125000, status: 'Completed'),
+    Order(id: '#1002', customer: 'Sarah Johnson', amount: 285000, status: 'Completed'),
+    Order(id: '#1003', customer: 'Mike Wilson', amount: 45000, status: 'Pending'),
+    Order(id: '#1004', customer: 'Emma Davis', amount: 187500, status: 'Completed'),
+    Order(id: '#1005', customer: 'Alex Brown', amount: 68000, status: 'Completed'),
   ];
 
   @override
@@ -73,6 +77,14 @@ class _POSDashboardState extends State<POSDashboard> {
           'Point of Sale',
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
+        leading: IconButton(
+          icon: const Icon(Icons.menu),
+          onPressed: () {
+            setState(() {
+              _sidebarOpen = true;
+            });
+          },
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.notifications_outlined),
@@ -84,22 +96,40 @@ class _POSDashboardState extends State<POSDashboard> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildHeaderStats(),
-            const SizedBox(height: 24),
-            _buildSectionHeader('Quick Actions', onViewAll: () {}),
-            const SizedBox(height: 12),
-            _buildQuickActions(),
-            const SizedBox(height: 24),
-            _buildSectionHeader('Recent Orders'),
-            const SizedBox(height: 12),
-            _buildRecentOrders(),
-          ],
-        ),
+      body: Stack(
+        children: [
+          SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildHeaderStats(),
+                const SizedBox(height: 24),
+                _buildSectionHeader('Quick Actions', onViewAll: () {}),
+                const SizedBox(height: 12),
+                _buildQuickActions(),
+                const SizedBox(height: 24),
+                _buildSectionHeader('Recent Orders'),
+                const SizedBox(height: 12),
+                _buildRecentOrders(),
+              ],
+            ),
+          ),
+          if (_sidebarOpen)
+            GestureDetector(
+              onTap: () => setState(() => _sidebarOpen = false),
+              child: Container(
+                color: Colors.black54,
+              ),
+            ),
+          AnimatedPositioned(
+            duration: const Duration(milliseconds: 300),
+            left: _sidebarOpen ? 0 : -280,
+            top: 0,
+            bottom: 0,
+            child: _buildSidebar(),
+          ),
+        ],
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
@@ -150,7 +180,7 @@ class _POSDashboardState extends State<POSDashboard> {
       children: [
         _StatCard(
           title: 'Today\'s Revenue',
-          value: '\$1,245.50',
+          value: 'UGX 4,581,250',
           trend: '+12% from yesterday',
           icon: Icons.attach_money,
           color: Colors.green,
@@ -283,7 +313,7 @@ class _POSDashboardState extends State<POSDashboard> {
               ),
             ),
             trailing: Text(
-              '\$${order.amount}',
+              'UGX ${order.amount.toStringAsFixed(0)}',
               style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
             ),
           );
@@ -303,6 +333,147 @@ class _POSDashboardState extends State<POSDashboard> {
       default:
         return Colors.grey;
     }
+  }
+
+  Widget _buildSidebar() {
+    return Container(
+      width: 280,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 10,
+            offset: const Offset(2, 0),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'CPOS',
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Point of Sale System',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              children: [
+                _SidebarItem(
+                  icon: Icons.dashboard_outlined,
+                  title: 'Dashboard',
+                  selected: _selectedIndex == 0,
+                  onTap: () => _selectNavItem(0),
+                ),
+                _SidebarItem(
+                  icon: Icons.point_of_sale_outlined,
+                  title: 'Point of Sale',
+                  selected: _selectedIndex == 1,
+                  onTap: () => _selectNavItem(1),
+                ),
+                _SidebarItem(
+                  icon: Icons.inventory_2_outlined,
+                  title: 'Products',
+                  selected: _selectedIndex == 2,
+                  onTap: () => _selectNavItem(2),
+                ),
+                _SidebarItem(
+                  icon: Icons.receipt_long_outlined,
+                  title: 'Orders',
+                  selected: _selectedIndex == 3,
+                  onTap: () => _selectNavItem(3),
+                ),
+                _FinancialReportsDropdown(
+                  expanded: _financialReportsExpanded,
+                  onToggle: () {
+                    setState(() {
+                      _financialReportsExpanded = !_financialReportsExpanded;
+                    });
+                  },
+                ),
+                if (_financialReportsExpanded) ...[
+                  _SidebarSubItem(
+                    icon: Icons.account_balance_outlined,
+                    title: 'Balance Sheet',
+                    onTap: () {},
+                  ),
+                  _SidebarSubItem(
+                    icon: Icons.trending_up_outlined,
+                    title: 'Income Statement',
+                    onTap: () {},
+                  ),
+                  _SidebarSubItem(
+                    icon: Icons.attach_money_outlined,
+                    title: 'Cash Flow Statement',
+                    onTap: () {},
+                  ),
+                  _SidebarSubItem(
+                    icon: Icons.bar_chart_outlined,
+                    title: 'Profit & Loss',
+                    onTap: () {},
+                  ),
+                  _SidebarSubItem(
+                    icon: Icons.assessment_outlined,
+                    title: 'Sales Report',
+                    onTap: () {},
+                  ),
+                ],
+                _SidebarItem(
+                  icon: Icons.people_outline,
+                  title: 'Customers',
+                  selected: false,
+                  onTap: () {},
+                ),
+                _SidebarItem(
+                  icon: Icons.category_outlined,
+                  title: 'Categories',
+                  selected: false,
+                  onTap: () {},
+                ),
+                _SidebarItem(
+                  icon: Icons.payment_outlined,
+                  title: 'Payments',
+                  selected: false,
+                  onTap: () {},
+                ),
+                _SidebarItem(
+                  icon: Icons.settings_outlined,
+                  title: 'Settings',
+                  selected: false,
+                  onTap: () {},
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _selectNavItem(int index) {
+    setState(() {
+      _selectedIndex = index;
+      _sidebarOpen = false;
+    });
   }
 }
 
@@ -400,6 +571,105 @@ class _QuickActionItem extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _SidebarItem extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _SidebarItem({
+    required this.icon,
+    required this.title,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      leading: Icon(
+        icon,
+        color: selected
+            ? Theme.of(context).colorScheme.primary
+            : Theme.of(context).colorScheme.onSurfaceVariant,
+      ),
+      title: Text(
+        title,
+        style: TextStyle(
+          color: selected
+              ? Theme.of(context).colorScheme.primary
+              : Theme.of(context).colorScheme.onSurface,
+          fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+        ),
+      ),
+      selected: selected,
+      onTap: onTap,
+    );
+  }
+}
+
+class _FinancialReportsDropdown extends StatelessWidget {
+  final bool expanded;
+  final VoidCallback onToggle;
+
+  const _FinancialReportsDropdown({
+    required this.expanded,
+    required this.onToggle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      leading: Icon(
+        Icons.bar_chart_outlined,
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
+      ),
+      title: Text(
+        'Financial Reports',
+        style: TextStyle(
+          color: Theme.of(context).colorScheme.onSurface,
+        ),
+      ),
+      trailing: Icon(
+        expanded ? Icons.expand_less : Icons.expand_more,
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
+      ),
+      onTap: onToggle,
+    );
+  }
+}
+
+class _SidebarSubItem extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final VoidCallback onTap;
+
+  const _SidebarSubItem({
+    required this.icon,
+    required this.title,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      contentPadding: const EdgeInsets.only(left: 56, right: 16),
+      leading: Icon(
+        icon,
+        size: 20,
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
+      ),
+      title: Text(
+        title,
+        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+      ),
+      onTap: onTap,
     );
   }
 }
