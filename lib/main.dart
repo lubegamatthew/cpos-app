@@ -522,6 +522,22 @@ class _POSDashboardState extends State<POSDashboard> {
                   selected: _selectedIndex == 2,
                   onTap: () => _selectNavItem(2),
                 ),
+                _SidebarItem(
+                  icon: Icons.attach_money_outlined,
+                  title: 'Expenses',
+                  selected: false,
+                  onTap: () {},
+                ),
+                _SidebarItem(
+                  icon: Icons.bar_chart_outlined,
+                  title: 'Financial Reports',
+                  selected: false,
+                  onTap: () {
+                    setState(() {
+                      _financialReportsExpanded = !_financialReportsExpanded;
+                    });
+                  },
+                ),
                 if (_financialReportsExpanded) ...[
                   _SidebarSubItem(
                     icon: Icons.account_balance_outlined,
@@ -548,18 +564,7 @@ class _POSDashboardState extends State<POSDashboard> {
                     title: 'Sales Report',
                     onTap: () {},
                   ),
-                  _SidebarSubItem(
-                    icon: Icons.money_outlined,
-                    title: 'Expenses',
-                    onTap: () {},
-                  ),
                 ],
-                _SidebarItem(
-                  icon: Icons.people_outline,
-                  title: 'Customers',
-                  selected: false,
-                  onTap: () {},
-                ),
                 _SidebarItem(
                   icon: Icons.category_outlined,
                   title: 'Categories',
