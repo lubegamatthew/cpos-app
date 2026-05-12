@@ -1026,101 +1026,101 @@ class _InventoryCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 6,
-              offset: const Offset(0, 1),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: _getCategoryColor(item.category).withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(12),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 6,
+                offset: const Offset(0, 1),
               ),
-              child: Icon(
-                Icons.inventory_outlined,
-                color: _getCategoryColor(item.category),
-                size: 20,
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: _getCategoryColor(item.category).withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  Icons.inventory_outlined,
+                  color: _getCategoryColor(item.category),
+                  size: 18,
+                ),
               ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      item.name,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            item.category,
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const Text('  •  '),
+                        Flexible(
+                          child: Text(
+                            item.quantity < 5
+                                ? '${item.quantity} ${item.unit} (low)'
+                                : '${item.quantity} ${item.unit}',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w500,
+                              color: item.quantity < 5 ? Colors.amber : Colors.green,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    item.name,
+                    'UGX ${item.buyPrice.toStringAsFixed(0)}',
                     style: const TextStyle(
                       fontWeight: FontWeight.w600,
-                      fontSize: 14,
+                      fontSize: 13,
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 2),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Flexible(
-                        child: Text(
-                          item.category,
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      const Text('  •  '),
-                      Flexible(
-                        child: Text(
-                          item.quantity < 5
-                              ? '${item.quantity} ${item.unit} (low)'
-                              : '${item.quantity} ${item.unit}',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w500,
-                            color: item.quantity < 5 ? Colors.amber : Colors.green,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
+                  Text(
+                    'UGX ${item.totalCost.toStringAsFixed(0)}',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ],
               ),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  'UGX ${item.buyPrice.toStringAsFixed(0)}',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                  ),
-                ),
-                Text(
-                  'UGX ${item.totalCost.toStringAsFixed(0)}',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
-            PopupMenuButton<String>(
+              PopupMenuButton<String>(
               onSelected: (value) {
                 if (value == 'edit') onEdit();
                 if (value == 'delete') onDelete();
@@ -1202,13 +1202,13 @@ class _InventoryStatCard extends StatelessWidget {
             color: color.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Icon(icon, color: color, size: 20),
+          child: Icon(icon, color: color, size: 16),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         Text(
           value,
           style: TextStyle(
-            fontSize: 14,
+            fontSize: 12,
             fontWeight: FontWeight.w700,
           ),
           textAlign: TextAlign.center,
@@ -1218,7 +1218,7 @@ class _InventoryStatCard extends StatelessWidget {
         Text(
           label,
           style: TextStyle(
-            fontSize: 10,
+            fontSize: 9,
             color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
           textAlign: TextAlign.center,

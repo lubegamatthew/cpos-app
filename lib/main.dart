@@ -227,6 +227,7 @@ class _POSDashboardState extends State<POSDashboard> {
 
   @override
   Widget build(BuildContext context) {
+    final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -283,38 +284,41 @@ class _POSDashboardState extends State<POSDashboard> {
           ),
         ],
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _selectedIndex,
-        onDestinationSelected: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
-        },
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.dashboard_outlined),
-            label: 'Dashboard',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.point_of_sale_outlined),
-            label: 'POS',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.inventory_outlined),
-            label: 'Inventory',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.bar_chart_outlined),
-            label: 'Reports',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.money_outlined),
-            label: 'Expenses',
-          ),
-        ],
-      ),
-      floatingActionButton: _selectedIndex != 2
-          ? FloatingActionButton.extended(
+      bottomNavigationBar: isLandscape
+          ? null
+          : NavigationBar(
+              selectedIndex: _selectedIndex,
+              onDestinationSelected: (index) {
+                setState(() {
+                  _selectedIndex = index;
+                });
+              },
+              destinations: const [
+                NavigationDestination(
+                  icon: Icon(Icons.dashboard_outlined),
+                  label: 'Dashboard',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.point_of_sale_outlined),
+                  label: 'POS',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.inventory_outlined),
+                  label: 'Inventory',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.bar_chart_outlined),
+                  label: 'Reports',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.money_outlined),
+                  label: 'Expenses',
+                ),
+              ],
+            ),
+      floatingActionButton: isLandscape || _selectedIndex == 2
+          ? null
+          : FloatingActionButton.extended(
               onPressed: () {
                 setState(() {
                   _selectedIndex = 1;
@@ -322,8 +326,7 @@ class _POSDashboardState extends State<POSDashboard> {
               },
               icon: const Icon(Icons.add),
               label: const Text('New Sale'),
-            )
-          : null,
+            ),
     );
   }
 
@@ -528,9 +531,9 @@ class _POSDashboardState extends State<POSDashboard> {
             ),
           ),
           const Divider(height: 1),
-          Expanded(
+          Flexible(
             child: ListView(
-              padding: const EdgeInsets.symmetric(vertical: 4),
+              padding: const EdgeInsets.symmetric(vertical: 8),
               physics: const ClampingScrollPhysics(),
               cacheExtent: 500.0,
               children: [
