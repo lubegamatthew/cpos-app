@@ -7,8 +7,13 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:cpos/main.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  sqfliteFfiInit();
+  databaseFactory = databaseFactoryFfi;
+
   testWidgets('POS Dashboard renders correctly', (WidgetTester tester) async {
     // Build our app and trigger a frame.
     await tester.pumpWidget(const MyApp());
@@ -16,7 +21,7 @@ void main() {
     // Verify that the dashboard title is displayed.
     expect(find.text('Point of Sale'), findsWidgets);
     expect(find.text('Today\'s Revenue'), findsOneWidget);
-    expect(find.text('Recent Transactions'), findsOneWidget);
+    expect(find.text('Top picks'), findsOneWidget);
     expect(find.text('Quick Actions'), findsOneWidget);
   });
 }

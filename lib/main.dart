@@ -4,6 +4,7 @@ import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'pages/inventory_page.dart';
+import 'pages/pos_page.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -779,9 +780,7 @@ class _POSDashboardState extends State<POSDashboard> {
   }
 
   Widget _buildPosBody() {
-    return const Center(
-      child: Text('Point of Sale - Coming Soon'),
-    );
+    return const PosPage();
   }
 
   Widget _buildInventoryBody() {
