@@ -298,7 +298,7 @@ class _POSDashboardState extends State<POSDashboard> {
   int _selectedIndex = 0;
   bool _sidebarOpen = false;
   bool _financialReportsExpanded = false;
-  String _selectedPeriod = 'Week';
+  String _selectedPeriod = 'Daily';
 
   final List<Order> _recentOrders = [
     Order(id: '#1001', customer: 'John Smith', amount: 125000, status: 'Completed'),
@@ -457,7 +457,6 @@ class _POSDashboardState extends State<POSDashboard> {
   Widget _buildSalesChart() {
     final data = _getChartData(_selectedPeriod);
     final total = data.fold<double>(0, (sum, v) => sum + v);
-    final labels = _getChartLabels(_selectedPeriod);
 
     return Card(
       elevation: 2,
@@ -468,73 +467,144 @@ class _POSDashboardState extends State<POSDashboard> {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
+            // Title on its own line
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Daily Sales',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
+                Icon(Icons.trending_up, size: 18, color: Theme.of(context).colorScheme.primary),
+                const SizedBox(width: 8),
+                Text(
+                  'Daily Sales',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w600,
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '$_selectedPeriod • UGX ${_formatNumber(total)}',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
-                              fontSize: 12,
-                            ),
-                      ),
-                    ],
-                  ),
-                ),
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    for (final period in ['Week', 'Month', 'Year'])
-                      ChoiceChip(
-                        label: Text(period),
-                        selected: _selectedPeriod == period,
-                        onSelected: (selected) {
-                          if (selected) {
-                            setState(() {
-                              _selectedPeriod = period;
-                            });
-                          }
-                        },
-                        selectedColor: Theme.of(context).colorScheme.primary,
-                        labelStyle: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w500,
-                          color: _selectedPeriod == period
-                              ? Colors.white
-                              : Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                  ],
                 ),
               ],
             ),
-            const SizedBox(height: 20),
-            SizedBox(
-              height: 220,
-              child: CustomPaint(
-                painter: _SalesChartPainter(
-                  data: data,
-                  labels: labels,
-                  barColor: Theme.of(context).colorScheme.primary,
+            const SizedBox(height: 12),
+            // Filters on their own line
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                _buildPeriodChip('Daily'),
+                _buildPeriodChip('Weekly'),
+                _buildPeriodChip('Monthly'),
+                _buildPeriodChip('Yearly'),
+              ],
+            ),
+            const SizedBox(height: 12),
+            // Total summary
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    _selectedPeriod,
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Total Revenue: UGX ${_formatNumber(total)}',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            // Legend row
+            Row(
+              children: [
+                Container(
+                  width: 12,
+                  height: 12,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primary,
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  'Revenue (UGX)',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontSize: 11,
+                      ),
+                ),
+                const SizedBox(width: 16),
+                Container(
+                  width: 12,
+                  height: 12,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  'Grid Reference',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontSize: 11,
+                      ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            // Chart area with subtle border
+            Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: SizedBox(
+                  height: 220,
+                  child: CustomPaint(
+                    painter: _SalesChartPainter(
+                      data: data,
+                      labels: _getChartLabels(_selectedPeriod),
+                      barColor: Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
                 ),
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildPeriodChip(String period) {
+    return ChoiceChip(
+      label: Text(period),
+      selected: _selectedPeriod == period,
+      onSelected: (selected) {
+        if (selected) setState(() => _selectedPeriod = period);
+      },
+      selectedColor: Theme.of(context).colorScheme.primary,
+      labelStyle: TextStyle(
+        fontSize: 11,
+        fontWeight: FontWeight.w500,
+        color: _selectedPeriod == period
+            ? Colors.white
+            : Theme.of(context).colorScheme.onSurfaceVariant,
       ),
     );
   }
@@ -551,12 +621,14 @@ class _POSDashboardState extends State<POSDashboard> {
 
   List<String> _getChartLabels(String period) {
     switch (period) {
-      case 'Week':
+      case 'Daily':
         return ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-      case 'Month':
+      case 'Weekly':
         return ['W1', 'W2', 'W3', 'W4', 'W5'];
-      case 'Year':
+      case 'Monthly':
         return ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      case 'Yearly':
+        return ['2024', '2025', '2026'];
       default:
         return [];
     }
@@ -564,18 +636,20 @@ class _POSDashboardState extends State<POSDashboard> {
 
   List<double> _getChartData(String period) {
     switch (period) {
-      case 'Week':
+      case 'Daily':
         return [1200, 1800, 1400, 2200, 1900, 2500, 2100];
-      case 'Month':
+      case 'Weekly':
         return [
           15000, 18000, 12000, 22000, 19000, 25000, 21000,
           17000, 23000, 20000, 18000, 24000, 21000
         ];
-      case 'Year':
+      case 'Monthly':
         return [
           180000, 210000, 160000, 190000, 150000, 170000,
           220000, 190000, 160000, 210000, 180000, 240000
         ];
+      case 'Yearly':
+        return [1800000, 2100000, 1600000];
       default:
         return [];
     }
@@ -919,7 +993,7 @@ class _SalesChartPainter extends CustomPainter {
       canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
     }
 
-    // Draw filled bars with rounded tops
+    // Draw bars with rounded tops
     for (int i = 0; i < data.length; i++) {
       final barHeight = (data[i] / maxValue) * (size.height - 50);
       final x = i * spacing + (spacing - barWidth) / 2;
