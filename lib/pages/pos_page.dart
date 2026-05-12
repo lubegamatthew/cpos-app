@@ -20,14 +20,15 @@ class CartItem {
 }
 
 class _PosPageState extends State<PosPage> {
-  final List<InventoryItem> _inventory = [];
-  final List<CartItem> _cart = [];
-  final ScrollController _scrollController = ScrollController();
+   final List<InventoryItem> _inventory = [];
+   final List<CartItem> _cart = [];
+   final ScrollController _scrollController = ScrollController();
+   void Function(void Function())? _bottomSheetSetState;
 
-  // Customer info
-  final _customerNameController = TextEditingController(text: 'Walk-in Customer');
-  final _customerPhoneController = TextEditingController();
-  final _notesController = TextEditingController();
+// Customer info
+   final _customerNameController = TextEditingController(text: 'Walk-in Customer');
+   final _customerPhoneController = TextEditingController();
+   final _notesController = TextEditingController();
 
   // Search and filter
   final _searchController = TextEditingController();
@@ -75,40 +76,43 @@ class _PosPageState extends State<PosPage> {
     return items;
   }
 
-  void _addToCart(InventoryItem item) {
-    setState(() {
-      final existing = _cart.firstWhere(
-        (c) => c.item.id == item.id,
-        orElse: () => CartItem(item: item),
-      );
-      if (_cart.any((c) => c.item.id == item.id)) {
-        existing.quantity++;
-      } else {
-        _cart.add(CartItem(item: item));
-      }
-    });
-    _showCartBottomSheet();
-  }
+void _addToCart(InventoryItem item) {
+     setState(() {
+       final existing = _cart.firstWhere(
+         (c) => c.item.id == item.id,
+         orElse: () => CartItem(item: item),
+       );
+       if (_cart.any((c) => c.item.id == item.id)) {
+         existing.quantity++;
+       } else {
+         _cart.add(CartItem(item: item));
+       }
+     });
+if (_bottomSheetSetState != null) _bottomSheetSetState!(() {});
+      _showCartBottomSheet();
+    }
 
-  void _removeFromCart(String itemId) {
-    setState(() {
-      if (itemId == 'all') {
-        _cart.clear();
-      } else {
-        _cart.removeWhere((c) => c.item.id == itemId);
-      }
-    });
-  }
+void _removeFromCart(String itemId) {
+     setState(() {
+       if (itemId == 'all') {
+         _cart.clear();
+       } else {
+         _cart.removeWhere((c) => c.item.id == itemId);
+       }
+     });
+if (_bottomSheetSetState != null) _bottomSheetSetState!(() {});
+    }
 
-  void _updateCartQuantity(String itemId, int delta) {
-    setState(() {
-      final cartItem = _cart.firstWhere((c) => c.item.id == itemId);
-      cartItem.quantity += delta;
-      if (cartItem.quantity <= 0) {
-        _cart.removeWhere((c) => c.item.id == itemId);
-      }
-    });
-  }
+    void _updateCartQuantity(String itemId, int delta) {
+      setState(() {
+        final cartItem = _cart.firstWhere((c) => c.item.id == itemId);
+        cartItem.quantity += delta;
+        if (cartItem.quantity <= 0) {
+          _cart.removeWhere((c) => c.item.id == itemId);
+        }
+      });
+      if (_bottomSheetSetState != null) _bottomSheetSetState!(() {});
+   }
 
   double get _subtotal => _cart.fold(0.0, (sum, c) => sum + c.total);
   double get _totalProfit => _cart.fold(0.0, (sum, c) => sum + c.profit);
@@ -203,20 +207,25 @@ if (!mounted) return;
     }
   }
 
-  void _showCartBottomSheet() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-backgroundColor: Colors.white,
-       builder: (context) => _CartBottomSheet(
-        cart: _cart,
-        onUpdateQuantity: _updateCartQuantity,
-        onRemove: _removeFromCart,
-        onCheckout: _checkout,
-        isProcessing: _isProcessing,
-      ),
-    );
-  }
+void _showCartBottomSheet() {
+     showModalBottomSheet(
+       context: context,
+       isScrollControlled: true,
+       backgroundColor: Colors.white,
+       builder: (context) => StatefulBuilder(
+builder: (context, setSheetState) {
+            _bottomSheetSetState = setSheetState;
+            return _CartBottomSheetContent(
+              cart: _cart,
+              onUpdateQuantity: _updateCartQuantity,
+              onRemove: _removeFromCart,
+              onCheckout: _checkout,
+              isProcessing: _isProcessing,
+            );
+         },
+       ),
+     );
+   }
 
   void _showReceiptDialog(String orderId, double subtotal, double totalProfit, int itemCount) {
     showDialog(
@@ -486,36 +495,36 @@ actions: [
     );
   }
 
-  @override
-  void dispose() {
-    _customerNameController.dispose();
-    _customerPhoneController.dispose();
-    _notesController.dispose();
-    _searchController.dispose();
-    _scrollController.dispose();
-    super.dispose();
-  }
+@override
+   void dispose() {
+     _customerNameController.dispose();
+     _customerPhoneController.dispose();
+     _notesController.dispose();
+     _searchController.dispose();
+_scrollController.dispose();
+      super.dispose();
+   }
 }
 
-class _CartBottomSheet extends StatelessWidget {
-  final List<CartItem> cart;
-  final Function(String, int) onUpdateQuantity;
-  final Function(String) onRemove;
-  final Future<void> Function() onCheckout;
-  final bool isProcessing;
+class _CartBottomSheetContent extends StatelessWidget {
+   final List<CartItem> cart;
+   final Function(String, int) onUpdateQuantity;
+   final Function(String) onRemove;
+   final Future<void> Function() onCheckout;
+   final bool isProcessing;
 
-  const _CartBottomSheet({
-    required this.cart,
-    required this.onUpdateQuantity,
-    required this.onRemove,
-    required this.onCheckout,
-    required this.isProcessing,
-  });
+   const _CartBottomSheetContent({
+     required this.cart,
+     required this.onUpdateQuantity,
+     required this.onRemove,
+     required this.onCheckout,
+     required this.isProcessing,
+   });
 
-  double get subtotal => cart.fold(0.0, (sum, c) => sum + c.total);
-  double get profit => cart.fold(0.0, (sum, c) => sum + c.profit);
+   double get subtotal => cart.fold(0.0, (sum, c) => sum + c.total);
+   double get profit => cart.fold(0.0, (sum, c) => sum + c.profit);
 
-@override
+   @override
    Widget build(BuildContext context) {
      return Container(
        padding: const EdgeInsets.all(16),
@@ -585,8 +594,8 @@ class _CartBottomSheet extends StatelessWidget {
                                  children: [
                                    Text(
                                      item.name,
-                                     style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-                                     maxLines: 2,
+                                     style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                                     maxLines: 1,
                                      overflow: TextOverflow.ellipsis,
                                    ),
                                    const SizedBox(height: 2),
