@@ -228,22 +228,15 @@ class _POSDashboardState extends State<POSDashboard> {
       ),
       body: Stack(
         children: [
-          SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildHeaderStats(),
-                const SizedBox(height: 24),
-                _buildSectionHeader('Quick Actions', onViewAll: () {}),
-                const SizedBox(height: 12),
-                _buildQuickActions(),
-                const SizedBox(height: 24),
-                _buildSectionHeader('Recent Transactions'),
-                const SizedBox(height: 12),
-                _buildRecentOrders(),
-              ],
-            ),
+          IndexedStack(
+            index: _selectedIndex,
+            children: [
+              _buildDashboardBody(),
+              _buildPosBody(),
+              _buildInventoryBody(),
+              _buildReportsBody(),
+              _buildExpensesBody(),
+            ],
           ),
           if (_sidebarOpen)
             GestureDetector(
@@ -503,6 +496,8 @@ class _POSDashboardState extends State<POSDashboard> {
           Expanded(
             child: ListView(
               padding: const EdgeInsets.symmetric(vertical: 8),
+              physics: const ClampingScrollPhysics(),
+              cacheExtent: 500.0,
               children: [
                 _SidebarItem(
                   icon: Icons.dashboard_outlined,
@@ -588,6 +583,50 @@ class _POSDashboardState extends State<POSDashboard> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildDashboardBody() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildHeaderStats(),
+          const SizedBox(height: 24),
+          _buildSectionHeader('Quick Actions', onViewAll: () {}),
+          const SizedBox(height: 12),
+          _buildQuickActions(),
+          const SizedBox(height: 24),
+          _buildSectionHeader('Recent Transactions'),
+          const SizedBox(height: 12),
+          _buildRecentOrders(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPosBody() {
+    return const Center(
+      child: Text('Point of Sale - Coming Soon'),
+    );
+  }
+
+  Widget _buildInventoryBody() {
+    return const Center(
+      child: Text('Inventory - Coming Soon'),
+    );
+  }
+
+  Widget _buildReportsBody() {
+    return const Center(
+      child: Text('Reports - Coming Soon'),
+    );
+  }
+
+  Widget _buildExpensesBody() {
+    return const Center(
+      child: Text('Expenses - Coming Soon'),
     );
   }
 
