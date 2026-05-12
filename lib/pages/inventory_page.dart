@@ -158,179 +158,180 @@ class _InventoryPageState extends State<InventoryPage> {
           ),
         ),
       ),
-      body: Column(
-        children: [
-          SizedBox(
-            height: 48,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              children: _categories.map((category) {
-                final isSelected = _selectedCategory == category;
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: FilterChip(
-                    label: Text(
-                      category,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+      body: CustomScrollView(
+        slivers: [
+          SliverToBoxAdapter(
+            child: SizedBox(
+              height: 48,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                children: _categories.map((category) {
+                  final isSelected = _selectedCategory == category;
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: FilterChip(
+                      label: Text(
+                        category,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                        ),
+                      ),
+                      selected: isSelected,
+                      onSelected: (selected) {
+                        setState(() {
+                          _selectedCategory = category;
+                        });
+                      },
+                      selectedColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                      checkmarkColor: Theme.of(context).colorScheme.primary,
+                      labelStyle: TextStyle(
+                        color: isSelected
+                            ? Theme.of(context).colorScheme.primary
+                            : Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                      side: BorderSide(
+                        color: isSelected
+                            ? Theme.of(context).colorScheme.primary
+                            : Colors.transparent,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
                       ),
                     ),
-                    selected: isSelected,
-                    onSelected: (selected) {
-                      setState(() {
-                        _selectedCategory = category;
-                      });
-                    },
-                    selectedColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-                    checkmarkColor: Theme.of(context).colorScheme.primary,
-                    labelStyle: TextStyle(
-                      color: isSelected
-                          ? Theme.of(context).colorScheme.primary
-                          : Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                    side: BorderSide(
-                      color: isSelected
-                          ? Theme.of(context).colorScheme.primary
-                          : Colors.transparent,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                  ),
-                );
-              }).toList(),
+                  );
+                }).toList(),
+              ),
             ),
           ),
-
           if (_lowStockItems.isNotEmpty)
-            Container(
-              width: double.infinity,
-              margin: const EdgeInsets.all(12),
+            SliverToBoxAdapter(
+              child: Container(
+                width: double.infinity,
+                margin: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.amber.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.warning_amber_rounded, color: Colors.amber, size: 20),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        '${_lowStockItems.length} item${_lowStockItems.length > 1 ? 's' : ''} running low on stock',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.amber,
+                        ),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        setState(() {
+                          _selectedCategory = 'All Categories';
+                          _sortOption = SortOption.quantityAsc;
+                        });
+                      },
+                      child: const Text(
+                        'View',
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          SliverToBoxAdapter(
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 12),
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.amber.withValues(alpha: 0.1),
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.warning_amber_rounded, color: Colors.amber, size: 20),
-                  const SizedBox(width: 12),
                   Expanded(
-                    child: Text(
-                      '${_lowStockItems.length} item${_lowStockItems.length > 1 ? 's' : ''} running low on stock',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.amber,
-                      ),
+                    child: _InventoryStatCard(
+                      label: 'Total Items',
+                      value: _inventoryItems.length.toString(),
+                      icon: Icons.inventory_outlined,
+                      color: Colors.blue,
                     ),
                   ),
-                  TextButton(
-                    onPressed: () {
-                      setState(() {
-                        _selectedCategory = 'All Categories';
-                        _sortOption = SortOption.quantityAsc;
-                      });
-                    },
-                    child: const Text(
-                      'View',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _InventoryStatCard(
+                      label: 'Total Value',
+                      value: 'UGX ${_calculateTotalValue().toStringAsFixed(0)}',
+                      icon: Icons.account_balance_wallet_outlined,
+                      color: Colors.green,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _InventoryStatCard(
+                      label: 'Low Stock',
+                      value: _lowStockItems.length.toString(),
+                      icon: Icons.warning_amber_outlined,
+                      color: Colors.amber,
                     ),
                   ),
                 ],
               ),
             ),
-
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 12),
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: _InventoryStatCard(
-                    label: 'Total Items',
-                    value: _inventoryItems.length.toString(),
-                    icon: Icons.inventory_outlined,
-                    color: Colors.blue,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _InventoryStatCard(
-                    label: 'Total Value',
-                    value: 'UGX ${_calculateTotalValue().toStringAsFixed(0)}',
-                    icon: Icons.account_balance_wallet_outlined,
-                    color: Colors.green,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _InventoryStatCard(
-                    label: 'Low Stock',
-                    value: _lowStockItems.length.toString(),
-                    icon: Icons.warning_amber_outlined,
-                    color: Colors.amber,
-                  ),
-                ),
-              ],
-            ),
           ),
-
-          const SizedBox(height: 12),
-
-          Expanded(
+          const SliverPadding(padding: EdgeInsets.symmetric(vertical: 6)),
+          SliverFillRemaining(
             child: _filteredItems.isEmpty
                 ? Center(
-                    child: SingleChildScrollView(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const SizedBox(height: 80),
-                          Icon(
-                            Icons.inventory_outlined,
-                            size: 80,
-                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.15),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const SizedBox(height: 80),
+                        Icon(
+                          Icons.inventory_outlined,
+                          size: 64,
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.15),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'No data found!!',
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                fontWeight: FontWeight.w600,
+                              ),
+                        ),
+                        const SizedBox(height: 4),
+                        const Text(
+                          'Tap + to add your first spare part',
+                          style: TextStyle(fontSize: 12),
+                        ),
+                        const SizedBox(height: 12),
+                        FilledButton.icon(
+                          onPressed: () => _showAddEditDialog(),
+                          icon: const Icon(Icons.add, size: 18),
+                          label: const Text('Add Inventory'),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: Theme.of(context).colorScheme.primary,
+                            foregroundColor: Colors.white,
+                            textStyle: const TextStyle(fontSize: 13),
                           ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'No data found!!',
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                          ),
-                          const SizedBox(height: 4),
-                          const Text(
-                            'Tap + to add your first spare part',
-                            style: TextStyle(fontSize: 13),
-                          ),
-                          const SizedBox(height: 16),
-                          FilledButton.icon(
-                            onPressed: () => _showAddEditDialog(),
-                            icon: const Icon(Icons.add),
-                            label: const Text('Add Inventory'),
-                            style: FilledButton.styleFrom(
-                              backgroundColor: Theme.of(context).colorScheme.primary,
-                              foregroundColor: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(height: 80),
-                        ],
-                      ),
+                        ),
+                        const SizedBox(height: 40),
+                      ],
                     ),
                   )
                 : RefreshIndicator(

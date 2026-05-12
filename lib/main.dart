@@ -685,7 +685,7 @@ class _POSDashboardState extends State<POSDashboard> {
           const SizedBox(height: 12),
           _buildQuickActions(),
           const SizedBox(height: 24),
-          _buildSectionHeader('Recent Transactions'),
+          _buildSectionHeader('Top picks'),
           const SizedBox(height: 12),
           _buildRecentOrders(),
         ],
