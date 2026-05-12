@@ -506,7 +506,7 @@ class _POSDashboardState extends State<POSDashboard> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -530,7 +530,7 @@ class _POSDashboardState extends State<POSDashboard> {
           const Divider(height: 1),
           Expanded(
             child: ListView(
-              padding: const EdgeInsets.symmetric(vertical: 8),
+              padding: const EdgeInsets.symmetric(vertical: 4),
               physics: const ClampingScrollPhysics(),
               cacheExtent: 500.0,
               children: [
@@ -845,6 +845,7 @@ class _SidebarItem extends StatelessWidget {
       title: Text(
         title,
         style: TextStyle(
+          fontSize: 13,
           color: selected
               ? Theme.of(context).colorScheme.primary
               : Theme.of(context).colorScheme.onSurface,

@@ -295,45 +295,47 @@ class _InventoryPageState extends State<InventoryPage> {
           ),
           const SliverPadding(padding: EdgeInsets.symmetric(vertical: 6)),
           SliverFillRemaining(
-            child: _filteredItems.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const SizedBox(height: 80),
-                        Icon(
-                          Icons.inventory_outlined,
-                          size: 64,
-                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.15),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          'No data found!!',
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                fontWeight: FontWeight.w600,
+child: _filteredItems.isEmpty
+                  ? Center(
+                      child: SingleChildScrollView(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const SizedBox(height: 40),
+                            Icon(
+                              Icons.inventory_outlined,
+                              size: 48,
+                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.15),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'No data found!!',
+                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                            ),
+                            const SizedBox(height: 4),
+                            const Text(
+                              'Tap + to add your first spare part',
+                              style: TextStyle(fontSize: 11),
+                            ),
+                            const SizedBox(height: 8),
+                            FilledButton.icon(
+                              onPressed: () => _showAddEditDialog(),
+                              icon: const Icon(Icons.add, size: 16),
+                              label: const Text('Add Inventory'),
+                              style: FilledButton.styleFrom(
+                                backgroundColor: Theme.of(context).colorScheme.primary,
+                                foregroundColor: Colors.white,
+                                textStyle: const TextStyle(fontSize: 12),
                               ),
+                            ),
+                            const SizedBox(height: 20),
+                          ],
                         ),
-                        const SizedBox(height: 4),
-                        const Text(
-                          'Tap + to add your first spare part',
-                          style: TextStyle(fontSize: 12),
-                        ),
-                        const SizedBox(height: 12),
-                        FilledButton.icon(
-                          onPressed: () => _showAddEditDialog(),
-                          icon: const Icon(Icons.add, size: 18),
-                          label: const Text('Add Inventory'),
-                          style: FilledButton.styleFrom(
-                            backgroundColor: Theme.of(context).colorScheme.primary,
-                            foregroundColor: Colors.white,
-                            textStyle: const TextStyle(fontSize: 13),
-                          ),
-                        ),
-                        const SizedBox(height: 40),
-                      ],
-                    ),
-                  )
+                      ),
+                    )
                 : RefreshIndicator(
                     onRefresh: () async {
                       await Future.delayed(const Duration(seconds: 1));
@@ -398,7 +400,7 @@ class _InventoryPageState extends State<InventoryPage> {
                 children: [
                   // Table header
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                     decoration: BoxDecoration(
                       color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(8),
@@ -407,38 +409,39 @@ class _InventoryPageState extends State<InventoryPage> {
                       children: [
                         Expanded(
                           flex: 2,
-                          child: Text('Category', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                          child: Text('Category', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurfaceVariant)),
                         ),
                         Expanded(
                           flex: 3,
-                          child: Text('Item Name', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                          child: Text('Item Name', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurfaceVariant)),
                         ),
                         Expanded(
                           flex: 1,
-                          child: Text('QTY', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurfaceVariant), textAlign: TextAlign.center),
+                          child: Text('QTY', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurfaceVariant), textAlign: TextAlign.center),
                         ),
                         Expanded(
                           flex: 2,
-                          child: Text('B.P', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurfaceVariant), textAlign: TextAlign.right),
+                          child: Text('B.P', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurfaceVariant), textAlign: TextAlign.right),
                         ),
                         Expanded(
                           flex: 2,
-                          child: Text('Total', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurfaceVariant), textAlign: TextAlign.right),
+                          child: Text('Total', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurfaceVariant), textAlign: TextAlign.right),
                         ),
                         Expanded(
                           flex: 2,
-                          child: Text('S.P', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurfaceVariant), textAlign: TextAlign.right),
+                          child: Text('S.P', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurfaceVariant), textAlign: TextAlign.right),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 8),
                   // Category field
                   _buildFormField(
                     controller: categoryController,
                     label: 'Category *',
                     hintText: 'e.g., Brake System',
                     icon: Icons.category_outlined,
+                    fontSize: 12,
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
                         return 'Category is required';
@@ -446,13 +449,14 @@ class _InventoryPageState extends State<InventoryPage> {
                       return null;
                     },
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 8),
                   // Item Name field
                   _buildFormField(
                     controller: nameController,
                     label: 'Item Name *',
                     hintText: 'e.g., Front Brake Disc',
                     icon: Icons.label_outlined,
+                    fontSize: 12,
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
                         return 'Item name is required';
@@ -460,7 +464,7 @@ class _InventoryPageState extends State<InventoryPage> {
                       return null;
                     },
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 8),
                   // QTY, Unit, B.P row
                   Row(
                     children: [
@@ -471,6 +475,7 @@ class _InventoryPageState extends State<InventoryPage> {
                           label: 'Quantity *',
                           hintText: '0',
                           icon: Icons.numbers,
+                          fontSize: 12,
                           keyboardType: TextInputType.number,
                           validator: (value) {
                             if (value == null || value.trim().isEmpty) {
@@ -484,7 +489,7 @@ class _InventoryPageState extends State<InventoryPage> {
                           },
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 6),
                       Expanded(
                         flex: 2,
                         child: _buildFormField(
@@ -492,9 +497,10 @@ class _InventoryPageState extends State<InventoryPage> {
                           label: 'Unit',
                           hintText: 'pcs',
                           icon: Icons.straighten_outlined,
+                          fontSize: 12,
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 6),
                       Expanded(
                         flex: 3,
                         child: _buildFormField(
@@ -502,6 +508,7 @@ class _InventoryPageState extends State<InventoryPage> {
                           label: 'Buy Price *',
                           hintText: '0.00',
                           icon: Icons.attach_money_outlined,
+                          fontSize: 12,
                           keyboardType: const TextInputType.numberWithOptions(decimal: true),
                           validator: (value) {
                             if (value == null || value.trim().isEmpty) {
@@ -517,7 +524,7 @@ class _InventoryPageState extends State<InventoryPage> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 8),
                   // Total (auto-calculated) and S.P row
                   Row(
                     children: [
@@ -528,10 +535,11 @@ class _InventoryPageState extends State<InventoryPage> {
                           label: 'Description',
                           hintText: 'Optional (e.g., compatible models)',
                           icon: Icons.description_outlined,
+                          fontSize: 12,
                           maxLines: 2,
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 6),
                       Expanded(
                         flex: 3,
                         child: _buildFormField(
@@ -539,6 +547,7 @@ class _InventoryPageState extends State<InventoryPage> {
                           label: 'Selling Price (S.P) *',
                           hintText: '0.00',
                           icon: Icons.price_change_outlined,
+                          fontSize: 12,
                           keyboardType: const TextInputType.numberWithOptions(decimal: true),
                           validator: (value) {
                             if (value == null || value.trim().isEmpty) {
@@ -630,6 +639,7 @@ class _InventoryPageState extends State<InventoryPage> {
     required IconData icon,
     TextInputType keyboardType = TextInputType.text,
     int maxLines = 1,
+    double fontSize = 13,
     String? Function(String?)? validator,
   }) {
     return TextFormField(
@@ -637,7 +647,7 @@ class _InventoryPageState extends State<InventoryPage> {
       keyboardType: keyboardType,
       maxLines: maxLines,
       validator: validator,
-      style: const TextStyle(fontSize: 14),
+      style: TextStyle(fontSize: fontSize),
       decoration: InputDecoration(
         labelText: label,
         hintText: hintText,
