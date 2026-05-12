@@ -595,22 +595,28 @@ child: _filteredItems.isEmpty
                       padding: const EdgeInsets.symmetric(horizontal: 12),
                       itemCount: _filteredItems.length,
                       separatorBuilder: (context, index) => const SizedBox(height: 8),
-                      itemBuilder: (context, index) {
-                        final item = _filteredItems[index];
-                        return _InventoryCard(
-                          item: item,
-                          onTap: () => _showItemDetails(item),
-                          onEdit: () => _showAddEditDialog(item: item),
-                          onDelete: () => _confirmDelete(item),
-                        );
-                      },
-                    ),
-                  ),
-          ),
-        ],
-      ),
-    );
-  }
+itemBuilder: (context, index) {
+                         final item = _filteredItems[index];
+                         return _InventoryCard(
+                           item: item,
+                           onTap: () => _showItemDetails(item),
+                           onEdit: () => _showAddEditDialog(item: item),
+                           onDelete: () => _confirmDelete(item),
+                         );
+                       },
+                     ),
+                   ),
+           ),
+         ],
+       ),
+       floatingActionButton: FloatingActionButton(
+         onPressed: () => _showAddEditDialog(),
+         backgroundColor: Theme.of(context).colorScheme.primary,
+         foregroundColor: Colors.white,
+         child: const Icon(Icons.add),
+       ),
+     );
+   }
 
   List<InventoryItem> get _lowStockItems =>
       _inventoryItems.where((item) => item.quantity < 5).toList();
@@ -1531,10 +1537,10 @@ class _InventorySearchDelegate extends SearchDelegate<InventoryItem?> {
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
             ),
-          ],
-        ),
-      );
-    }
+],
+      ),
+    );
+  }
 
     return ListView.builder(
       padding: const EdgeInsets.all(8),
