@@ -119,6 +119,11 @@ class _PosPageState extends State<PosPage> {
 
     setState(() => _isProcessing = true);
 
+    // Capture totals before clearing
+    final subtotal = _subtotal;
+    final totalProfit = _totalProfit;
+    final itemCount = _itemCount;
+
     try {
       final orderId = DateTime.now().millisecondsSinceEpoch.toString();
       final now = DateTime.now().toIso8601String();
@@ -130,8 +135,8 @@ class _PosPageState extends State<PosPage> {
             ? 'Walk-in Customer'
             : _customerNameController.text.trim(),
         'customerPhone': _customerPhoneController.text.trim(),
-        'totalAmount': _subtotal,
-        'totalProfit': _totalProfit,
+        'totalAmount': subtotal,
+        'totalProfit': totalProfit,
         'paymentMethod': 'Cash',
         'status': 'Completed',
         'notes': _notesController.text.trim(),
@@ -175,10 +180,12 @@ class _PosPageState extends State<PosPage> {
       _customerPhoneController.clear();
       _notesController.clear();
 
-      if (mounted) {
-        await _loadInventory();
-        _showReceiptDialog(orderId);
-      }
+if (!mounted) return;
+       await _loadInventory();
+       if (!mounted) return;
+       // Close the cart bottom sheet before showing receipt
+       Navigator.of(context).pop();
+       _showReceiptDialog(orderId, subtotal, totalProfit, itemCount);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -192,7 +199,7 @@ class _PosPageState extends State<PosPage> {
         );
       }
     } finally {
-      setState(() => _isProcessing = false);
+      if (mounted) setState(() => _isProcessing = false);
     }
   }
 
@@ -200,8 +207,8 @@ class _PosPageState extends State<PosPage> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => _CartBottomSheet(
+backgroundColor: Colors.white,
+       builder: (context) => _CartBottomSheet(
         cart: _cart,
         onUpdateQuantity: _updateCartQuantity,
         onRemove: _removeFromCart,
@@ -211,7 +218,7 @@ class _PosPageState extends State<PosPage> {
     );
   }
 
-  void _showReceiptDialog(String orderId) {
+  void _showReceiptDialog(String orderId, double subtotal, double totalProfit, int itemCount) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -229,15 +236,15 @@ class _PosPageState extends State<PosPage> {
           children: [
             Text('Order ID: $orderId', style: const TextStyle(fontSize: 12)),
             const SizedBox(height: 8),
-            Text('Items: $_itemCount', style: const TextStyle(fontSize: 12)),
+            Text('Items: $itemCount', style: const TextStyle(fontSize: 12)),
             const SizedBox(height: 8),
             Text(
-              'Total: UGX ${_subtotal.toStringAsFixed(0)}',
+              'Total: UGX ${subtotal.toStringAsFixed(0)}',
               style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 8),
             Text(
-              'Profit: UGX ${_totalProfit.toStringAsFixed(0)}',
+              'Profit: UGX ${totalProfit.toStringAsFixed(0)}',
               style: const TextStyle(fontSize: 12, color: Colors.green),
             ),
           ],
@@ -471,15 +478,10 @@ actions: [
       floatingActionButton: _cart.isEmpty
           ? null
           : FloatingActionButton.extended(
-              onPressed: () async {
-                await _checkout();
-                if (mounted && _cart.isEmpty) {
-                  _showCartBottomSheet();
-                }
-              },
-              icon: const Icon(Icons.check_circle),
-              label: Text('Checkout (UGX ${_subtotal.toStringAsFixed(0)})'),
-              backgroundColor: Colors.green,
+              onPressed: _showCartBottomSheet,
+              icon: const Icon(Icons.shopping_cart_outlined),
+              label: Text('Cart (UGX ${_subtotal.toStringAsFixed(0)})'),
+              backgroundColor: Theme.of(context).colorScheme.primary,
             ),
     );
   }
