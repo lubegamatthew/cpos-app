@@ -266,24 +266,27 @@ class _PosPageState extends State<PosPage> {
           'Point of Sale',
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () async {
-              final messenger = ScaffoldMessenger.of(context);
-              await _loadInventory();
-              if (!mounted) return;
-              messenger.showSnackBar(
-                const SnackBar(
-                  content: Text('Inventory refreshed'),
-                  behavior: SnackBarBehavior.floating,
-                  margin: EdgeInsets.all(16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(8))),
-                ),
-              );
-            },
-          ),
-        ],
+actions: [
+           Padding(
+             padding: const EdgeInsets.only(right: 8),
+             child: IconButton(
+               icon: const Icon(Icons.refresh),
+               onPressed: () async {
+                 final messenger = ScaffoldMessenger.of(context);
+                 await _loadInventory();
+                 if (!mounted) return;
+                 messenger.showSnackBar(
+                   const SnackBar(
+                     content: Text('Inventory refreshed'),
+                     behavior: SnackBarBehavior.floating,
+                     margin: EdgeInsets.all(16),
+                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(8))),
+                   ),
+                 );
+               },
+             ),
+           ),
+         ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(84),
           child: Container(
