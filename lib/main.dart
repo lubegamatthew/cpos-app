@@ -532,6 +532,13 @@ class _POSDashboardState extends State<POSDashboard> {
                       _financialReportsExpanded = !_financialReportsExpanded;
                     });
                   },
+                  trailing: Icon(
+                    _financialReportsExpanded
+                        ? Icons.expand_less
+                        : Icons.expand_more,
+                    size: 20,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                 ),
                 if (_financialReportsExpanded) ...[
                   _SidebarSubItem(
@@ -541,7 +548,7 @@ class _POSDashboardState extends State<POSDashboard> {
                   ),
                   _SidebarSubItem(
                     icon: Icons.trending_up_outlined,
-                    title: 'Income Statement',
+                    title: 'Profit & Loss Statement',
                     onTap: () {},
                   ),
                   _SidebarSubItem(
@@ -550,13 +557,58 @@ class _POSDashboardState extends State<POSDashboard> {
                     onTap: () {},
                   ),
                   _SidebarSubItem(
-                    icon: Icons.bar_chart_outlined,
-                    title: 'Profit & Loss',
+                    icon: Icons.assessment_outlined,
+                    title: 'Sales Report',
                     onTap: () {},
                   ),
                   _SidebarSubItem(
-                    icon: Icons.assessment_outlined,
-                    title: 'Sales Report',
+                    icon: Icons.inventory_outlined,
+                    title: 'Stock Report',
+                    onTap: () {},
+                  ),
+                  _SidebarSubItem(
+                    icon: Icons.people_outline,
+                    title: 'Debtors Report',
+                    onTap: () {},
+                  ),
+                  _SidebarSubItem(
+                    icon: Icons.people_outline,
+                    title: 'Creditors Report',
+                    onTap: () {},
+                  ),
+                  _SidebarSubItem(
+                    icon: Icons.money_outlined,
+                    title: 'Expense Report',
+                    onTap: () {},
+                  ),
+                  _SidebarSubItem(
+                    icon: Icons.receipt_long_outlined,
+                    title: 'Daily Transaction Report',
+                    onTap: () {},
+                  ),
+                  _SidebarSubItem(
+                    icon: Icons.shopping_cart_outlined,
+                    title: 'Purchase Report',
+                    onTap: () {},
+                  ),
+                  _SidebarSubItem(
+                    icon: Icons.inventory_2_outlined,
+                    title: 'Low Stock Report',
+                    onTap: () {},
+                  ),
+                  _SidebarSubItem(
+                    icon: Icons.swap_horiz_outlined,
+                    title: 'Stock Movement Report',
+                    onTap: () {},
+                  ),
+                  _SidebarSubItem(
+                    icon: Icons.scale_outlined,
+                    title: 'Trial Balance',
+                    onTap: () {},
+                  ),
+                  _SidebarSubItem(
+                    icon: Icons.description_outlined,
+                    title: 'General Ledger',
                     onTap: () {},
                   ),
                 ],
@@ -738,12 +790,14 @@ class _SidebarItem extends StatelessWidget {
   final String title;
   final bool selected;
   final VoidCallback onTap;
+  final Widget? trailing;
 
   const _SidebarItem({
     required this.icon,
     required this.title,
     required this.selected,
     required this.onTap,
+    this.trailing,
   });
 
   @override
@@ -764,42 +818,14 @@ class _SidebarItem extends StatelessWidget {
           fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
         ),
       ),
+      trailing: trailing,
       selected: selected,
       onTap: onTap,
     );
   }
 }
 
-class _FinancialReportsDropdown extends StatelessWidget {
-  final bool expanded;
-  final VoidCallback onToggle;
 
-  const _FinancialReportsDropdown({
-    required this.expanded,
-    required this.onToggle,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      leading: Icon(
-        Icons.bar_chart_outlined,
-        color: Theme.of(context).colorScheme.onSurfaceVariant,
-      ),
-      title: Text(
-        'Financial Reports',
-        style: TextStyle(
-          color: Theme.of(context).colorScheme.onSurface,
-        ),
-      ),
-      trailing: Icon(
-        expanded ? Icons.expand_less : Icons.expand_more,
-        color: Theme.of(context).colorScheme.onSurfaceVariant,
-      ),
-      onTap: onToggle,
-    );
-  }
-}
 
 class _SidebarSubItem extends StatelessWidget {
   final IconData icon;
