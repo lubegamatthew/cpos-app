@@ -202,7 +202,7 @@ class _PosPageState extends State<PosPage> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => _CartBottomSheet(
-        cartItems: _cart,
+        cart: _cart,
         onUpdateQuantity: _updateCartQuantity,
         onRemove: _removeFromCart,
         onCheckout: _checkout,
@@ -492,6 +492,150 @@ class _PosPageState extends State<PosPage> {
   }
 }
 
+class _CartBottomSheet extends StatelessWidget {
+  final List<CartItem> cart;
+  final Function(String, int) onUpdateQuantity;
+  final Function(String) onRemove;
+  final Future<void> Function() onCheckout;
+  final bool isProcessing;
+
+  const _CartBottomSheet({
+    required this.cart,
+    required this.onUpdateQuantity,
+    required this.onRemove,
+    required this.onCheckout,
+    required this.isProcessing,
+  });
+
+  double get subtotal => cart.fold(0.0, (sum, c) => sum + c.total);
+  double get profit => cart.fold(0.0, (sum, c) => sum + c.profit);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ...cart.map((cartItem) {
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                children: [
+                  Container(
+                    width: 32,
+                    alignment: Alignment.center,
+                    child: Text(
+                      '${cartItem.quantity}',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.add_circle_outline, size: 20, color: Colors.green),
+                    onPressed: () {
+                      if (cartItem.quantity < cartItem.item.quantity) {
+                        onUpdateQuantity(cartItem.item.id, 1);
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Not enough stock'),
+                            behavior: SnackBarBehavior.floating,
+                            duration: Duration(seconds: 1),
+                          ),
+                        );
+                      }
+                    },
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline, size: 18, color: Colors.red),
+                    onPressed: () {
+                      onRemove(cartItem.item.id);
+                    },
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                ],
+              ),
+            );
+          }),
+          const Divider(height: 1),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Subtotal:', style: TextStyle(fontSize: 14)),
+                    Text(
+                      'UGX ${subtotal.toStringAsFixed(0)}',
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Est. Profit:', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                    Text(
+                      'UGX ${profit.toStringAsFixed(0)}',
+                      style: const TextStyle(fontSize: 12, color: Colors.green),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: isProcessing || cart.isEmpty ? null : () async {
+                      await onCheckout();
+                    },
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: isProcessing
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                        : Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: const [
+                              Icon(Icons.payment, size: 20),
+                              SizedBox(width: 8),
+                              Text(
+                                'Complete Sale',
+                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                              ),
+                            ],
+                          ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _PosProductCard extends StatelessWidget {
   final InventoryItem item;
   final VoidCallback onTap;
@@ -626,250 +770,6 @@ class _PosProductCard extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-class _CartBottomSheet extends StatelessWidget {
-  final List<CartItem> cartItems;
-  final Function(String, int) onUpdateQuantity;
-  final Function(String) onRemove;
-  final VoidCallback onCheckout;
-  final bool isProcessing;
-
-  const _CartBottomSheet({
-    required this.cartItems,
-    required this.onUpdateQuantity,
-    required this.onRemove,
-    required this.onCheckout,
-    required this.isProcessing,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final subtotal = cartItems.fold(0.0, (sum, c) => sum + c.total);
-    final profit = cartItems.fold(0.0, (sum, c) => sum + c.profit);
-    final itemCount = cartItems.fold(0, (sum, c) => sum + c.quantity);
-
-    return DraggableScrollableSheet(
-      initialChildSize: 0.65,
-      minChildSize: 0.5,
-      maxChildSize: 0.9,
-      builder: (context, scrollController) {
-        return Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-          ),
-          child: Column(
-            children: [
-              Container(
-                width: 40,
-                height: 4,
-                margin: const EdgeInsets.symmetric(vertical: 12),
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Cart ($itemCount items)',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        onRemove('all');
-                        Navigator.pop(context);
-                      },
-                      child: const Text(
-                        'Clear All',
-                        style: TextStyle(color: Colors.red, fontSize: 12),
-                      ),
-                    ),
-                  ],
-                ),
-               ),
-               const Divider(height: 24),
-               Expanded(
-                child: cartItems.isEmpty
-                    ? const Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.shopping_cart_outlined, size: 48, color: Color(0xFF9E9E9E)),
-                            SizedBox(height: 8),
-                            Text('Cart is empty', style: TextStyle(color: Colors.grey)),
-                          ],
-                        ),
-                      )
-                    : ListView.separated(
-                        controller: scrollController,
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        itemCount: cartItems.length,
-                        separatorBuilder: (context, index) => const Divider(height: 1),
-                        itemBuilder: (context, index) {
-                          final cartItem = cartItems[index];
-                          final item = cartItem.item;
-                          return ListTile(
-                            contentPadding: EdgeInsets.zero,
-                            dense: true,
-                            leading: Container(
-                              width: 44,
-                              height: 44,
-                              decoration: BoxDecoration(
-                                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Icon(
-                                Icons.inventory_2_outlined,
-                                color: Theme.of(context).colorScheme.primary,
-                                size: 22,
-                              ),
-                            ),
-                            title: Text(
-                              item.name,
-                              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            subtitle: Text(
-                              'UGX ${item.sellPrice.toStringAsFixed(0)} each',
-                              style: const TextStyle(fontSize: 11, color: Colors.grey),
-                            ),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                IconButton(
-                                  icon: const Icon(Icons.remove_circle_outline, size: 20),
-                                  onPressed: () {
-                                    onUpdateQuantity(item.id, -1);
-                                    if (cartItem.quantity <= 1) {
-                                      Navigator.pop(context);
-                                    }
-                                  },
-                                  padding: EdgeInsets.zero,
-                                  constraints: const BoxConstraints(),
-                                ),
-                                Container(
-                                  width: 32,
-                                  alignment: Alignment.center,
-                                  child: Text(
-                                    '${cartItem.quantity}',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.add_circle_outline, size: 20, color: Colors.green),
-                                  onPressed: () {
-                                    if (cartItem.quantity < item.quantity) {
-                                      onUpdateQuantity(item.id, 1);
-                                    } else {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(
-                                          content: Text('Not enough stock'),
-                                          behavior: SnackBarBehavior.floating,
-                                          duration: Duration(seconds: 1),
-                                        ),
-                                      );
-                                    }
-                                  },
-                                  padding: EdgeInsets.zero,
-                                  constraints: const BoxConstraints(),
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.delete_outline, size: 18, color: Colors.red),
-                                  onPressed: () {
-                                    onRemove(item.id);
-                                    Navigator.pop(context);
-                                  },
-                                  padding: EdgeInsets.zero,
-                                  constraints: const BoxConstraints(),
-                                ),
-                              ],
-                            ),
-                          );
-                        },
-                      ),
-              ),
-              const Divider(),
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text('Subtotal:', style: TextStyle(fontSize: 14)),
-                        Text(
-                          'UGX ${subtotal.toStringAsFixed(0)}',
-                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text('Est. Profit:', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                        Text(
-                          'UGX ${profit.toStringAsFixed(0)}',
-                          style: const TextStyle(fontSize: 12, color: Colors.green),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton(
-                        onPressed: isProcessing || cartItems.isEmpty ? null : onCheckout,
-                        style: FilledButton.styleFrom(
-                          backgroundColor: Colors.green,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: isProcessing
-                            ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                ),
-                              )
-                            : Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: const [
-                                  Icon(Icons.payment, size: 20),
-                                  SizedBox(width: 8),
-                                  Text(
-                                    'Complete Sale',
-                                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                                  ),
-                                ],
-                              ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        );
-      },
     );
   }
 }

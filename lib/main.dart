@@ -397,8 +397,8 @@ class _POSDashboardState extends State<POSDashboard> {
                   icon: Icon(Icons.money_outlined),
                   label: 'Expenses',
                 ),
-               ],
-             ),
+              ],
+            ),
     );
   }
 
@@ -931,8 +931,6 @@ class _SidebarItem extends StatelessWidget {
     );
   }
 }
-
-
 
 class _SidebarSubItem extends StatelessWidget {
   final IconData icon;
