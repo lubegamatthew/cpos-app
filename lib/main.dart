@@ -7,31 +7,28 @@ import 'pages/inventory_page.dart';
 import 'pages/pos_page.dart';
 
 void main() {
-  WidgetsFlutterBinding.ensureInitialized();
+  runZonedGuarded(() {
+    WidgetsFlutterBinding.ensureInitialized();
 
-  // Log all Flutter rendering/assertion errors to console/logcat
-  FlutterError.onError = (FlutterErrorDetails details) {
-    FlutterError.dumpErrorToConsole(details);
-    log(
-      'Flutter Error: ${details.exception}',
-      name: 'cpos',
-      error: details.exception,
-      stackTrace: details.stack,
-    );
-  };
-
-  // Capture unhandled Dart errors
-  runZonedGuarded(
-    () => runApp(const MyApp()),
-    (error, stack) {
+    FlutterError.onError = (FlutterErrorDetails details) {
+      FlutterError.dumpErrorToConsole(details);
       log(
-        'Unhandled Exception: $error',
+        'Flutter Error: ${details.exception}',
         name: 'cpos',
-        error: error,
-        stackTrace: stack,
+        error: details.exception,
+        stackTrace: details.stack,
       );
-    },
-  );
+    };
+
+    runApp(const MyApp());
+  }, (error, stack) {
+    log(
+      'Unhandled Exception: $error',
+      name: 'cpos',
+      error: error,
+      stackTrace: stack,
+    );
+  });
 }
 
 class MyApp extends StatelessWidget {
@@ -301,6 +298,7 @@ class _POSDashboardState extends State<POSDashboard> {
   int _selectedIndex = 0;
   bool _sidebarOpen = false;
   bool _financialReportsExpanded = false;
+  String _selectedPeriod = 'Week';
 
   final List<Order> _recentOrders = [
     Order(id: '#1001', customer: 'John Smith', amount: 125000, status: 'Completed'),
@@ -456,61 +454,131 @@ class _POSDashboardState extends State<POSDashboard> {
     );
   }
 
-  Widget _buildQuickActions() {
+  Widget _buildSalesChart() {
+    final data = _getChartData(_selectedPeriod);
+    final total = data.fold<double>(0, (sum, v) => sum + v);
+    final labels = _getChartLabels(_selectedPeriod);
+
     return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: GridView.count(
-          crossAxisCount: 4,
-          crossAxisSpacing: 8,
-          mainAxisSpacing: 8,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            _QuickActionItem(
-              icon: Icons.point_of_sale,
-              label: 'New Sale',
-              color: Theme.of(context).colorScheme.primary,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Daily Sales',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '$_selectedPeriod • UGX ${_formatNumber(total)}',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              fontSize: 12,
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    for (final period in ['Week', 'Month', 'Year'])
+                      ChoiceChip(
+                        label: Text(period),
+                        selected: _selectedPeriod == period,
+                        onSelected: (selected) {
+                          if (selected) {
+                            setState(() {
+                              _selectedPeriod = period;
+                            });
+                          }
+                        },
+                        selectedColor: Theme.of(context).colorScheme.primary,
+                        labelStyle: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          color: _selectedPeriod == period
+                              ? Colors.white
+                              : Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                  ],
+                ),
+              ],
             ),
-            _QuickActionItem(
-              icon: Icons.receipt_long,
-              label: 'Invoices',
-              color: Colors.indigo,
-            ),
-            _QuickActionItem(
-              icon: Icons.people,
-              label: 'Customers',
-              color: Colors.teal,
-            ),
-            _QuickActionItem(
-              icon: Icons.inventory,
-              label: 'Inventory',
-              color: Colors.amber,
-            ),
-            _QuickActionItem(
-              icon: Icons.category,
-              label: 'Categories',
-              color: Colors.deepOrange,
-            ),
-            _QuickActionItem(
-              icon: Icons.payment,
-              label: 'Payments',
-              color: Colors.green,
-            ),
-            _QuickActionItem(
-              icon: Icons.bar_chart,
-              label: 'Reports',
-              color: Colors.purple,
-            ),
-            _QuickActionItem(
-              icon: Icons.settings,
-              label: 'Settings',
-              color: Colors.grey,
+            const SizedBox(height: 20),
+            SizedBox(
+              height: 220,
+              child: CustomPaint(
+                painter: _SalesChartPainter(
+                  data: data,
+                  labels: labels,
+                  barColor: Theme.of(context).colorScheme.primary,
+                ),
+              ),
             ),
           ],
         ),
       ),
     );
+  }
+
+  String _formatNumber(double value) {
+    if (value >= 1000000) {
+      return '${(value / 1000000).toStringAsFixed(1)}M';
+    }
+    if (value >= 1000) {
+      return '${(value / 1000).toStringAsFixed(1)}K';
+    }
+    return value.toStringAsFixed(0);
+  }
+
+  List<String> _getChartLabels(String period) {
+    switch (period) {
+      case 'Week':
+        return ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      case 'Month':
+        return ['W1', 'W2', 'W3', 'W4', 'W5'];
+      case 'Year':
+        return ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      default:
+        return [];
+    }
+  }
+
+  List<double> _getChartData(String period) {
+    switch (period) {
+      case 'Week':
+        return [1200, 1800, 1400, 2200, 1900, 2500, 2100];
+      case 'Month':
+        return [
+          15000, 18000, 12000, 22000, 19000, 25000, 21000,
+          17000, 23000, 20000, 18000, 24000, 21000
+        ];
+      case 'Year':
+        return [
+          180000, 210000, 160000, 190000, 150000, 170000,
+          220000, 190000, 160000, 210000, 180000, 240000
+        ];
+      default:
+        return [];
+    }
   }
 
   Widget _buildRecentOrders() {
@@ -757,9 +825,7 @@ class _POSDashboardState extends State<POSDashboard> {
         children: [
           _buildHeaderStats(),
           const SizedBox(height: 24),
-          _buildSectionHeader('Quick Actions', onViewAll: () {}),
-          const SizedBox(height: 12),
-          _buildQuickActions(),
+          _buildSalesChart(),
           const SizedBox(height: 24),
           _buildSectionHeader('Top picks'),
           const SizedBox(height: 12),
@@ -795,6 +861,106 @@ class _POSDashboardState extends State<POSDashboard> {
       _sidebarOpen = false;
     });
   }
+}
+
+class _SalesChartPainter extends CustomPainter {
+  final List<double> data;
+  final List<String> labels;
+  final Color barColor;
+
+  _SalesChartPainter({
+    required this.data,
+    this.labels = const [],
+    required this.barColor,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (data.isEmpty) {
+      final textPainter = TextPainter(
+        text: const TextSpan(
+          text: 'No data available',
+          style: TextStyle(color: Colors.grey, fontSize: 14),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout(maxWidth: size.width);
+      textPainter.paint(
+        canvas,
+        Offset(
+          (size.width - textPainter.width) / 2,
+          (size.height - textPainter.height) / 2,
+        ),
+      );
+      return;
+    }
+
+    final paint = Paint()
+      ..color = barColor
+      ..style = PaintingStyle.fill
+      ..isAntiAlias = true;
+
+    final barWidth = (size.width / (data.length * 1.5)) > 10
+        ? (size.width / (data.length * 1.5))
+        : 10;
+    final spacing = size.width / data.length;
+    final maxValue = data.reduce((a, b) => a > b ? a : b);
+
+    if (maxValue <= 0) return;
+
+    // Draw horizontal gridlines
+    final gridPaint = Paint()
+      ..color = Colors.grey.withValues(alpha: 0.1)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1
+      ..isAntiAlias = true;
+
+    for (int i = 0; i <= 4; i++) {
+      final y = (size.height - 30) * (1 - i / 4.0) + 10;
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
+    }
+
+    // Draw filled bars with rounded tops
+    for (int i = 0; i < data.length; i++) {
+      final barHeight = (data[i] / maxValue) * (size.height - 50);
+      final x = i * spacing + (spacing - barWidth) / 2;
+      final y = size.height - barHeight - 30;
+
+      final rect = Rect.fromLTRB(x, y, x + barWidth, size.height - 30);
+      final radius = barWidth / 2;
+      canvas.drawRRect(
+        RRect.fromRectAndCorners(
+          rect,
+          topLeft: Radius.circular(radius),
+          topRight: Radius.circular(radius),
+        ),
+        paint,
+      );
+
+      // Draw labels
+      if (labels.isNotEmpty && i < labels.length) {
+        final labelPainter = TextPainter(
+          text: TextSpan(
+            text: labels[i],
+            style: TextStyle(
+              color: Colors.grey[600],
+              fontSize: 9,
+            ),
+          ),
+          textDirection: TextDirection.ltr,
+        )..layout(maxWidth: barWidth + 4);
+        labelPainter.paint(
+          canvas,
+          Offset(
+            x + (barWidth - labelPainter.width) / 2,
+            size.height - 22,
+          ),
+        );
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
 
 class _StatCard extends StatelessWidget {
@@ -843,52 +1009,6 @@ class _StatCard extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _QuickActionItem extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-
-  const _QuickActionItem({
-    required this.icon,
-    required this.label,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: () {},
-      borderRadius: BorderRadius.circular(12),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(icon, color: color, size: 20),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  fontWeight: FontWeight.w500,
-                  fontSize: 11,
-                ),
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
       ),
     );
   }
