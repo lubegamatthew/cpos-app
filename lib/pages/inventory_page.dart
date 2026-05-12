@@ -295,38 +295,42 @@ class _InventoryPageState extends State<InventoryPage> {
           Expanded(
             child: _filteredItems.isEmpty
                 ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.inventory_outlined,
-                          size: 80,
-                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.15),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'No data found!!',
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                fontWeight: FontWeight.w600,
-                              ),
-                        ),
-                        const SizedBox(height: 4),
-                        // const Text(
-                        //   'Tap + to add your first spare part',
-                        //   style: TextStyle(fontSize: 13),
-                        // ),
-                        const SizedBox(height: 16),
-                        FilledButton.icon(
-                          onPressed: () => _showAddEditDialog(),
-                          icon: const Icon(Icons.add),
-                          label: const Text('Add Inventory'),
-                          style: FilledButton.styleFrom(
-                            backgroundColor: Theme.of(context).colorScheme.primary,
-                            foregroundColor: Colors.white,
+                    child: SingleChildScrollView(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const SizedBox(height: 80),
+                          Icon(
+                            Icons.inventory_outlined,
+                            size: 80,
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.15),
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 16),
+                          Text(
+                            'No data found!!',
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                          ),
+                          const SizedBox(height: 4),
+                          const Text(
+                            'Tap + to add your first spare part',
+                            style: TextStyle(fontSize: 13),
+                          ),
+                          const SizedBox(height: 16),
+                          FilledButton.icon(
+                            onPressed: () => _showAddEditDialog(),
+                            icon: const Icon(Icons.add),
+                            label: const Text('Add Inventory'),
+                            style: FilledButton.styleFrom(
+                              backgroundColor: Theme.of(context).colorScheme.primary,
+                              foregroundColor: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(height: 80),
+                        ],
+                      ),
                     ),
                   )
                 : RefreshIndicator(
