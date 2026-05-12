@@ -305,12 +305,8 @@ class _POSDashboardState extends State<POSDashboard> {
     Order(id: '#1005', customer: 'Alex Brown', amount: 68000, status: 'Completed'),
   ];
 
-  @override
+@override
   Widget build(BuildContext context) {
-    final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
-    final screenHeight = MediaQuery.of(context).size.height;
-    final isShortScreen = screenHeight < 600;
-    final shouldHideNav = isLandscape || isShortScreen;
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -367,38 +363,38 @@ class _POSDashboardState extends State<POSDashboard> {
           ),
         ],
       ),
-      bottomNavigationBar: shouldHideNav
-          ? null
-          : NavigationBar(
-              selectedIndex: _selectedIndex,
-              onDestinationSelected: (index) {
-                setState(() {
-                  _selectedIndex = index;
-                });
-              },
-              destinations: const [
-                NavigationDestination(
-                  icon: Icon(Icons.dashboard_outlined),
-                  label: 'Dashboard',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.point_of_sale_outlined),
-                  label: 'POS',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.inventory_outlined),
-                  label: 'Inventory',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.bar_chart_outlined),
-                  label: 'Reports',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.money_outlined),
-                  label: 'Expenses',
-                ),
-              ],
-            ),
+bottomNavigationBar: _selectedIndex == 0
+           ? NavigationBar(
+               selectedIndex: _selectedIndex,
+               onDestinationSelected: (index) {
+                 setState(() {
+                   _selectedIndex = index;
+                 });
+               },
+               destinations: const [
+                 NavigationDestination(
+                   icon: Icon(Icons.dashboard_outlined),
+                   label: 'Dashboard',
+                 ),
+                 NavigationDestination(
+                   icon: Icon(Icons.point_of_sale_outlined),
+                   label: 'POS',
+                 ),
+                 NavigationDestination(
+                   icon: Icon(Icons.inventory_outlined),
+                   label: 'Inventory',
+                 ),
+                 NavigationDestination(
+                   icon: Icon(Icons.bar_chart_outlined),
+                   label: 'Reports',
+                 ),
+                 NavigationDestination(
+                   icon: Icon(Icons.money_outlined),
+                   label: 'Expenses',
+                 ),
+               ],
+             )
+           : null,
     );
   }
 
