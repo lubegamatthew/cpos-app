@@ -53,6 +53,136 @@ class Order {
   });
 }
 
+enum AccountType {
+  asset,
+  liability,
+  equity,
+  revenue,
+  expense,
+}
+
+class Account {
+  final String id;
+  final String name;
+  final AccountType type;
+  final double debit;
+  final double credit;
+
+  Account({
+    required this.id,
+    required this.name,
+    required this.type,
+    this.debit = 0,
+    this.credit = 0,
+  });
+
+  double get balance {
+    switch (type) {
+      case AccountType.asset:
+      case AccountType.expense:
+        return debit - credit;
+      case AccountType.liability:
+      case AccountType.equity:
+      case AccountType.revenue:
+        return credit - debit;
+    }
+  }
+}
+
+class JournalEntry {
+  final String id;
+  final DateTime date;
+  final String description;
+  final List<EntryLine> lines;
+
+  JournalEntry({
+    required this.id,
+    required this.date,
+    required this.description,
+    required this.lines,
+  });
+
+  void validate() {
+    final totalDebit = lines.where((l) => l.isDebit).fold(0.0, (sum, l) => sum + l.amount);
+    final totalCredit = lines.where((l) => !l.isDebit).fold(0.0, (sum, l) => sum + l.amount);
+    if ((totalDebit - totalCredit).abs() > 0.01) {
+      throw Exception('Journal entry does not balance: Debit=$totalDebit, Credit=$totalCredit');
+    }
+  }
+}
+
+class EntryLine {
+  final String accountId;
+  final double amount;
+  final bool isDebit;
+
+  EntryLine({
+    required this.accountId,
+    required this.amount,
+    required this.isDebit,
+  });
+}
+
+class AccountingService {
+  final Map<String, Account> _accounts = {};
+  final List<JournalEntry> _journalEntries = [];
+
+  void addAccount(Account account) {
+    _accounts[account.id] = account;
+  }
+
+  void addJournalEntry(JournalEntry entry) {
+    entry.validate();
+    _journalEntries.add(entry);
+  }
+
+  Account? getAccount(String id) => _accounts[id];
+
+  List<Account> getAccountsByType(AccountType type) {
+    return _accounts.values.where((a) => a.type == type).toList();
+  }
+
+  double getTotalAssets() {
+    return getAccountsByType(AccountType.asset).fold(0.0, (sum, a) => sum + a.balance);
+  }
+
+  double getTotalLiabilities() {
+    return getAccountsByType(AccountType.liability).fold(0.0, (sum, a) => sum + a.balance);
+  }
+
+  double getTotalEquity() {
+    return getAccountsByType(AccountType.equity).fold(0.0, (sum, a) => sum + a.balance);
+  }
+
+  double getTotalRevenue() {
+    return getAccountsByType(AccountType.revenue).fold(0.0, (sum, a) => sum + a.balance);
+  }
+
+  double getTotalExpenses() {
+    return getAccountsByType(AccountType.expense).fold(0.0, (sum, a) => sum + a.balance);
+  }
+
+  double getNetIncome() {
+    return getTotalRevenue() - getTotalExpenses();
+  }
+
+  bool isTrialBalanceBalanced() {
+    final totalDebits = _accounts.values.fold(0.0, (sum, a) {
+      if (a.type == AccountType.asset || a.type == AccountType.expense) {
+        return sum + a.debit;
+      }
+      return sum;
+    });
+    final totalCredits = _accounts.values.fold(0.0, (sum, a) {
+      if (a.type == AccountType.liability || a.type == AccountType.equity || a.type == AccountType.revenue) {
+        return sum + a.credit;
+      }
+      return sum;
+    });
+    return (totalDebits - totalCredits).abs() < 0.01;
+  }
+}
+
 class _POSDashboardState extends State<POSDashboard> {
   int _selectedIndex = 0;
   bool _sidebarOpen = false;
@@ -109,7 +239,7 @@ class _POSDashboardState extends State<POSDashboard> {
                 const SizedBox(height: 12),
                 _buildQuickActions(),
                 const SizedBox(height: 24),
-                _buildSectionHeader('Recent Orders'),
+                _buildSectionHeader('Recent Transactions'),
                 const SizedBox(height: 12),
                 _buildRecentOrders(),
               ],
@@ -180,29 +310,25 @@ class _POSDashboardState extends State<POSDashboard> {
       children: [
         _StatCard(
           title: 'Today\'s Revenue',
-          value: 'UGX 4,581,250',
-          trend: '+12% from yesterday',
+          value: 'UGX 4.6M',
           icon: Icons.attach_money,
           color: Colors.green,
         ),
         _StatCard(
           title: 'Total Orders',
           value: '24',
-          trend: '+8% from yesterday',
           icon: Icons.shopping_cart_outlined,
           color: Colors.blue,
         ),
         _StatCard(
           title: 'Customers',
           value: '18',
-          trend: '+5 new today',
           icon: Icons.people_outline,
           color: Colors.orange,
         ),
         _StatCard(
-          title: 'Low Stock Items',
+          title: 'Low Stock',
           value: '3',
-          trend: 'Need attention',
           icon: Icons.inventory_2_outlined,
           color: Colors.red,
         ),
@@ -229,11 +355,11 @@ class _POSDashboardState extends State<POSDashboard> {
   Widget _buildQuickActions() {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(12),
         child: GridView.count(
           crossAxisCount: 4,
-          crossAxisSpacing: 16,
-          mainAxisSpacing: 16,
+          crossAxisSpacing: 8,
+          mainAxisSpacing: 8,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           children: [
@@ -480,14 +606,12 @@ class _POSDashboardState extends State<POSDashboard> {
 class _StatCard extends StatelessWidget {
   final String title;
   final String value;
-  final String trend;
   final IconData icon;
   final Color color;
 
   const _StatCard({
     required this.title,
     required this.value,
-    required this.trend,
     required this.icon,
     required this.color,
   });
@@ -496,32 +620,30 @@ class _StatCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(8),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: color, size: 24),
-            const SizedBox(height: 8),
+            Icon(icon, color: color, size: 16),
+            const SizedBox(height: 2),
             Text(
               value,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
             Text(
               title,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontSize: 10,
                   ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              trend,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Colors.green,
-                    fontSize: 11,
-                  ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),
@@ -551,19 +673,20 @@ class _QuickActionItem extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            width: 48,
-            height: 48,
+            width: 40,
+            height: 40,
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(icon, color: color, size: 24),
+            child: Icon(icon, color: color, size: 20),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
           Text(
             label,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   fontWeight: FontWeight.w500,
+                  fontSize: 11,
                 ),
             textAlign: TextAlign.center,
             maxLines: 1,
