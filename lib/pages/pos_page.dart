@@ -341,7 +341,7 @@ class _PosPageState extends State<PosPage> {
                           heroTag: 'cart_fab',
                           onPressed: _cart.isEmpty ? null : _showCartBottomSheet,
                           backgroundColor: Theme.of(context).colorScheme.primary,
-                          child: const Icon(Icons.shopping_bag_outlined),
+                          child: const Icon(Icons.shopping_cart_outlined),
                         ),
                         if (_cart.isNotEmpty)
                           Positioned(
@@ -695,15 +695,15 @@ class _CartBottomSheet extends StatelessWidget {
                     ),
                   ],
                 ),
-              ),
-              const Divider(height: 24),
-              Expanded(
+               ),
+               const Divider(height: 24),
+               Expanded(
                 child: cartItems.isEmpty
                     ? const Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.shopping_bag_outlined, size: 48, color: Colors.grey),
+                            Icon(Icons.shopping_cart_outlined, size: 48, color: Color(0xFF9E9E9E)),
                             SizedBox(height: 8),
                             Text('Cart is empty', style: TextStyle(color: Colors.grey)),
                           ],
