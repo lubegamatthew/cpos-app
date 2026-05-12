@@ -51,7 +51,7 @@ class _InventoryPageState extends State<InventoryPage> {
     InventoryItem(id: 'INV-009', name: 'Gaskets (Magnetal - Verma)', category: 'Engine Parts', quantity: 10, buyPrice: 3000, sellPrice: 6000, createdAt: _epoch),
     InventoryItem(id: 'INV-010', name: 'Block tensioner', category: 'Engine Parts', quantity: 5, buyPrice: 3500, sellPrice: 6000, createdAt: _epoch),
     InventoryItem(id: 'INV-011', name: 'Oil Petrol', category: 'Engine Parts', quantity: 2, buyPrice: 35000, sellPrice: 10000, createdAt: _epoch),
-    InventoryItem(id: 'INV-012', name: 'Shell (1 box/12pcs)', category: 'Engine Parts', quantity: 12, buyPrice: 18500, sellPrice: 17000, createdAt: _epoch),
+    InventoryItem(id: 'INV-012', name: 'Shell (1 box/12pcs)', category: 'Engine Parts', quantity: 10, buyPrice: 18500, sellPrice: 17000, createdAt: _epoch),
     InventoryItem(id: 'INV-013', name: 'Oil Pumps', category: 'Engine Parts', quantity: 3, buyPrice: 7500, sellPrice: 10000, createdAt: _epoch),
     InventoryItem(id: 'INV-014', name: 'Valve Seals', category: 'Engine Parts', quantity: 2, buyPrice: 4000, sellPrice: 7000, createdAt: _epoch),
 
@@ -126,7 +126,7 @@ class _InventoryPageState extends State<InventoryPage> {
     InventoryItem(id: 'INV-070', name: 'R2 Tyre with tube', category: 'Accessories', quantity: 1, buyPrice: 82000, sellPrice: 95000, createdAt: _epoch),
     InventoryItem(id: 'INV-071', name: 'Golden Boy Tubes', category: 'Accessories', quantity: 4, buyPrice: 10000, sellPrice: 12000, createdAt: _epoch),
     InventoryItem(id: 'INV-072', name: 'R2 Tubes', category: 'Accessories', quantity: 10, buyPrice: 5500, sellPrice: 10000, createdAt: _epoch),
-    InventoryItem(id: 'INV-073', name: 'CC Tubes', category: 'Accessories', quantity: 20, buyPrice: 5000, sellPrice: 9000, createdAt: _epoch),
+    InventoryItem(id: 'INV-073', name: 'CC Tubes', category: 'Accessories', quantity: 20, buyPrice: 2500, sellPrice: 9000, createdAt: _epoch),
     InventoryItem(id: 'INV-074', name: 'CC Tyre (Front)', category: 'Accessories', quantity: 3, buyPrice: 30000, sellPrice: 42000, createdAt: _epoch),
     InventoryItem(id: 'INV-075', name: 'CC Tyre (Behind)', category: 'Accessories', quantity: 3, buyPrice: 50000, sellPrice: 70000, createdAt: _epoch),
     InventoryItem(id: 'INV-076', name: 'System (D&K)', category: 'Accessories', quantity: 2, buyPrice: 20000, sellPrice: 30000, createdAt: _epoch),
@@ -1300,7 +1300,7 @@ class _InventoryCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
-                  Icons.inventory_outlined,
+                  _getCategoryIcon(item.category),
                   color: _getCategoryColor(item.category),
                   size: 18,
                 ),
@@ -1612,5 +1612,28 @@ class _InventorySearchDelegate extends SearchDelegate<InventoryItem?> {
       default:
         return Colors.indigo;
     }
+  }
+}
+
+IconData _getCategoryIcon(String category) {
+  switch (category) {
+    case 'Engine Parts':
+      return Icons.engineering;
+    case 'Brake System':
+      return Icons.warning_amber;
+    case 'Electrical':
+      return Icons.electrical_services;
+    case 'Body & Frame':
+      return Icons.directions_car;
+    case 'Suspension':
+      return Icons.air;
+    case 'Fuel System':
+      return Icons.local_gas_station;
+    case 'Transmission':
+      return Icons.settings_input_component;
+    case 'Accessories':
+      return Icons.dashboard;
+    default:
+      return Icons.inventory_outlined;
   }
 }
