@@ -59,7 +59,8 @@ class InventoryItem {
   String name;
   String category;
   int quantity;
-  double price;
+  double buyPrice;
+  double sellPrice;
   String unit;
   String description;
   DateTime createdAt;
@@ -69,13 +70,16 @@ class InventoryItem {
     required this.name,
     required this.category,
     required this.quantity,
-    required this.price,
+    required this.buyPrice,
+    required this.sellPrice,
     this.unit = 'pcs',
     this.description = '',
     DateTime? createdAt,
   }) : createdAt = createdAt ?? DateTime.now();
 
-  double get totalValue => quantity * price;
+  double get totalCost => quantity * buyPrice;
+  double get totalSell => quantity * sellPrice;
+  double get profit => totalSell - totalCost;
 }
 
 enum AccountType {
@@ -229,7 +233,7 @@ class _POSDashboardState extends State<POSDashboard> {
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         title: const Text(
-          'Point of Sale',
+          'POS',
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
         leading: IconButton(

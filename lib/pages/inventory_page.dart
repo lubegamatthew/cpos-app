@@ -57,13 +57,13 @@ class _InventoryPageState extends State<InventoryPage> {
         items.sort((a, b) => b.quantity.compareTo(a.quantity));
         break;
       case SortOption.priceAsc:
-        items.sort((a, b) => a.price.compareTo(b.price));
+        items.sort((a, b) => a.buyPrice.compareTo(b.buyPrice));
         break;
       case SortOption.priceDesc:
-        items.sort((a, b) => b.price.compareTo(a.price));
+        items.sort((a, b) => b.buyPrice.compareTo(a.buyPrice));
         break;
       case SortOption.valueDesc:
-        items.sort((a, b) => b.totalValue.compareTo(a.totalValue));
+        items.sort((a, b) => b.totalCost.compareTo(a.totalCost));
         break;
     }
 
@@ -363,7 +363,7 @@ class _InventoryPageState extends State<InventoryPage> {
       _inventoryItems.where((item) => item.quantity < 5).toList();
 
   double _calculateTotalValue() {
-    return _inventoryItems.fold(0.0, (sum, item) => sum + item.totalValue);
+    return _inventoryItems.fold(0.0, (sum, item) => sum + item.totalCost);
   }
 
   void _showAddEditDialog({InventoryItem? item}) {
@@ -371,7 +371,8 @@ class _InventoryPageState extends State<InventoryPage> {
     final nameController = TextEditingController(text: item?.name ?? '');
     final categoryController = TextEditingController(text: item?.category ?? '');
     final quantityController = TextEditingController(text: item?.quantity.toString() ?? '');
-    final priceController = TextEditingController(text: item?.price.toString() ?? '');
+    final buyPriceController = TextEditingController(text: item?.buyPrice.toString() ?? '');
+    final sellPriceController = TextEditingController(text: item?.sellPrice.toString() ?? '');
     final unitController = TextEditingController(text: item?.unit ?? 'pcs');
     final descriptionController = TextEditingController(text: item?.description ?? '');
 
@@ -394,19 +395,44 @@ class _InventoryPageState extends State<InventoryPage> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildFormField(
-                    controller: nameController,
-                    label: 'Part Name *',
-                    hintText: 'e.g., Front Brake Disc',
-                    icon: Icons.label_outlined,
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Part name is required';
-                      }
-                      return null;
-                    },
+                  // Table header
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          flex: 2,
+                          child: Text('Category', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                        ),
+                        Expanded(
+                          flex: 3,
+                          child: Text('Item Name', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                        ),
+                        Expanded(
+                          flex: 1,
+                          child: Text('QTY', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurfaceVariant), textAlign: TextAlign.center),
+                        ),
+                        Expanded(
+                          flex: 2,
+                          child: Text('B.P', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurfaceVariant), textAlign: TextAlign.right),
+                        ),
+                        Expanded(
+                          flex: 2,
+                          child: Text('Total', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurfaceVariant), textAlign: TextAlign.right),
+                        ),
+                        Expanded(
+                          flex: 2,
+                          child: Text('S.P', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurfaceVariant), textAlign: TextAlign.right),
+                        ),
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
+                  // Category field
                   _buildFormField(
                     controller: categoryController,
                     label: 'Category *',
@@ -419,10 +445,26 @@ class _InventoryPageState extends State<InventoryPage> {
                       return null;
                     },
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
+                  // Item Name field
+                  _buildFormField(
+                    controller: nameController,
+                    label: 'Item Name *',
+                    hintText: 'e.g., Front Brake Disc',
+                    icon: Icons.label_outlined,
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Item name is required';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  // QTY, Unit, B.P row
                   Row(
                     children: [
                       Expanded(
+                        flex: 3,
                         child: _buildFormField(
                           controller: quantityController,
                           label: 'Quantity *',
@@ -435,48 +477,81 @@ class _InventoryPageState extends State<InventoryPage> {
                             }
                             final parsed = int.tryParse(value);
                             if (parsed == null || parsed < 0) {
-                              return 'Must be a valid number';
+                              return 'Must be valid';
                             }
                             return null;
                           },
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 8),
                       Expanded(
+                        flex: 2,
                         child: _buildFormField(
                           controller: unitController,
                           label: 'Unit',
-                          hintText: 'e.g., pcs',
+                          hintText: 'pcs',
                           icon: Icons.straighten_outlined,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        flex: 3,
+                        child: _buildFormField(
+                          controller: buyPriceController,
+                          label: 'Buy Price *',
+                          hintText: '0.00',
+                          icon: Icons.attach_money_outlined,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return 'Required';
+                            }
+                            final parsed = double.tryParse(value);
+                            if (parsed == null || parsed < 0) {
+                              return 'Must be valid';
+                            }
+                            return null;
+                          },
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
-                  _buildFormField(
-                    controller: priceController,
-                    label: 'Price (UGX) *',
-                    hintText: '0.00',
-                    icon: Icons.attach_money_outlined,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Required';
-                      }
-                      final parsed = double.tryParse(value);
-                      if (parsed == null || parsed < 0) {
-                        return 'Must be a valid price';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  _buildFormField(
-                    controller: descriptionController,
-                    label: 'Description',
-                    hintText: 'Optional part description (e.g., compatible models)',
-                    icon: Icons.description_outlined,
-                    maxLines: 3,
+                  const SizedBox(height: 12),
+                  // Total (auto-calculated) and S.P row
+                  Row(
+                    children: [
+                      Expanded(
+                        flex: 3,
+                        child: _buildFormField(
+                          controller: descriptionController,
+                          label: 'Description',
+                          hintText: 'Optional (e.g., compatible models)',
+                          icon: Icons.description_outlined,
+                          maxLines: 2,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        flex: 3,
+                        child: _buildFormField(
+                          controller: sellPriceController,
+                          label: 'Selling Price (S.P) *',
+                          hintText: '0.00',
+                          icon: Icons.price_change_outlined,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return 'Required';
+                            }
+                            final parsed = double.tryParse(value);
+                            if (parsed == null || parsed < 0) {
+                              return 'Must be valid';
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -493,12 +568,16 @@ class _InventoryPageState extends State<InventoryPage> {
             FilledButton(
               onPressed: () {
                 if (formKey.currentState?.validate() ?? false) {
+                  final qty = int.parse(quantityController.text.trim());
+                  final bp = double.parse(buyPriceController.text.trim());
+                  final sp = double.parse(sellPriceController.text.trim());
                   final newItem = InventoryItem(
                     id: item?.id ?? 'INV-${(_inventoryItems.length + 1).toString().padLeft(3, '0')}',
                     name: nameController.text.trim(),
                     category: categoryController.text.trim(),
-                    quantity: int.parse(quantityController.text.trim()),
-                    price: double.parse(priceController.text.trim()),
+                    quantity: qty,
+                    buyPrice: bp,
+                    sellPrice: sp,
                     unit: unitController.text.trim().isEmpty ? 'pcs' : unitController.text.trim(),
                     description: descriptionController.text.trim(),
                   );
@@ -672,13 +751,23 @@ class _InventoryPageState extends State<InventoryPage> {
                 ),
                 _DetailRow(
                   icon: Icons.attach_money,
-                  label: 'Price',
-                  value: 'UGX ${item.price.toStringAsFixed(0)}',
+                  label: 'Buy Price',
+                  value: 'UGX ${item.buyPrice.toStringAsFixed(0)}',
+                ),
+                _DetailRow(
+                  icon: Icons.price_change_outlined,
+                  label: 'Sell Price',
+                  value: 'UGX ${item.sellPrice.toStringAsFixed(0)}',
                 ),
                 _DetailRow(
                   icon: Icons.account_balance_wallet_outlined,
-                  label: 'Total Value',
-                  value: 'UGX ${item.totalValue.toStringAsFixed(0)}',
+                  label: 'Total Cost',
+                  value: 'UGX ${item.totalCost.toStringAsFixed(0)}',
+                ),
+                _DetailRow(
+                  icon: Icons.trending_up,
+                  label: 'Total Sell',
+                  value: 'UGX ${item.totalSell.toStringAsFixed(0)}',
                 ),
                 _DetailRow(
                   icon: Icons.calendar_today,
@@ -1005,14 +1094,14 @@ class _InventoryCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  'UGX ${item.price.toStringAsFixed(0)}',
+                  'UGX ${item.buyPrice.toStringAsFixed(0)}',
                   style: const TextStyle(
                     fontWeight: FontWeight.w600,
                     fontSize: 14,
                   ),
                 ),
                 Text(
-                  'UGX ${item.totalValue.toStringAsFixed(0)}',
+                  'UGX ${item.totalCost.toStringAsFixed(0)}',
                   style: TextStyle(
                     fontSize: 11,
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -1202,7 +1291,7 @@ class _InventorySearchDelegate extends SearchDelegate<InventoryItem?> {
               child: Icon(Icons.inventory_outlined, color: _getCategoryColor(item.category), size: 18),
             ),
             title: Text(item.name),
-            subtitle: Text('${item.category}  •  UGX ${item.price.toStringAsFixed(0)}  •  ${item.quantity} in stock'),
+            subtitle: Text('${item.category}  •  UGX ${item.buyPrice.toStringAsFixed(0)}  •  ${item.quantity} in stock'),
             onTap: () {
               close(context, item);
             },
