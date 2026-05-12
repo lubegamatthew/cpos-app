@@ -39,8 +39,9 @@ class _InventoryPageState extends State<InventoryPage> {
   static final DateTime _epoch = DateTime(2024, 1, 1);
 
   final List<InventoryItem> _defaultInventoryItems = [
-    InventoryItem(id: 'INV-001', name: 'Timing chain', category: 'Engine Parts', quantity: 10, buyPrice: 2500, sellPrice: 5000, createdAt: _epoch),
-    InventoryItem(id: 'INV-002', name: 'Valves', category: 'Engine Parts', quantity: 10, buyPrice: 2500, sellPrice: 5000, createdAt: _epoch),
+  // Engine Parts
+    InventoryItem(id: 'INV-001', name: 'Timing chain (D&K)', category: 'Engine Parts', quantity: 10, buyPrice: 2500, sellPrice: 5000, createdAt: _epoch),
+    InventoryItem(id: 'INV-002', name: 'Valves (D&K)', category: 'Engine Parts', quantity: 10, buyPrice: 2500, sellPrice: 5000, createdAt: _epoch),
     InventoryItem(id: 'INV-003', name: 'Pistons', category: 'Engine Parts', quantity: 10, buyPrice: 8300, sellPrice: 15000, createdAt: _epoch),
     InventoryItem(id: 'INV-004', name: 'Piston Rings', category: 'Engine Parts', quantity: 3, buyPrice: 4000, sellPrice: 8000, createdAt: _epoch),
     InventoryItem(id: 'INV-005', name: 'Gaskets (Metal)', category: 'Engine Parts', quantity: 50, buyPrice: 500, sellPrice: 3000, createdAt: _epoch),
@@ -48,41 +49,110 @@ class _InventoryPageState extends State<InventoryPage> {
     InventoryItem(id: 'INV-007', name: 'Gaskets (Magnetal)', category: 'Engine Parts', quantity: 50, buyPrice: 500, sellPrice: 3000, createdAt: _epoch),
     InventoryItem(id: 'INV-008', name: 'Gaskets (Clutch - Verma)', category: 'Engine Parts', quantity: 10, buyPrice: 3500, sellPrice: 6000, createdAt: _epoch),
     InventoryItem(id: 'INV-009', name: 'Gaskets (Magnetal - Verma)', category: 'Engine Parts', quantity: 10, buyPrice: 3000, sellPrice: 6000, createdAt: _epoch),
-    InventoryItem(id: 'INV-010', name: 'Oil Pumps', category: 'Engine Parts', quantity: 3, buyPrice: 7500, sellPrice: 10000, createdAt: _epoch),
-    InventoryItem(id: 'INV-011', name: 'Brake pads (Front)', category: 'Brake System', quantity: 20, buyPrice: 3500, sellPrice: 5000, createdAt: _epoch),
-    InventoryItem(id: 'INV-012', name: 'Brake pads (Hind)', category: 'Brake System', quantity: 20, buyPrice: 3500, sellPrice: 6000, createdAt: _epoch),
-    InventoryItem(id: 'INV-013', name: 'Brake shoes', category: 'Brake System', quantity: 5, buyPrice: 5000, sellPrice: 7000, createdAt: _epoch),
-    InventoryItem(id: 'INV-014', name: 'Brake line', category: 'Brake System', quantity: 10, buyPrice: 1500, sellPrice: 4000, createdAt: _epoch),
-    InventoryItem(id: 'INV-015', name: 'Brake pedal', category: 'Brake System', quantity: 5, buyPrice: 5500, sellPrice: 11000, createdAt: _epoch),
-    InventoryItem(id: 'INV-016', name: 'Battery 2.5', category: 'Electrical', quantity: 2, buyPrice: 22000, sellPrice: 28000, createdAt: _epoch),
-    InventoryItem(id: 'INV-017', name: 'Battery 6.5', category: 'Electrical', quantity: 2, buyPrice: 34000, sellPrice: 45000, createdAt: _epoch),
-    InventoryItem(id: 'INV-018', name: 'Head bulbs', category: 'Electrical', quantity: 50, buyPrice: 700, sellPrice: 1000, createdAt: _epoch),
-    InventoryItem(id: 'INV-019', name: 'Starter Coil', category: 'Electrical', quantity: 10, buyPrice: 4000, sellPrice: 8000, createdAt: _epoch),
-    InventoryItem(id: 'INV-020', name: 'Dimmer Switch (Pair)', category: 'Electrical', quantity: 1, buyPrice: 15000, sellPrice: 10000, createdAt: _epoch),
-    InventoryItem(id: 'INV-021', name: 'Side mirrors', category: 'Body & Frame', quantity: 10, buyPrice: 4500, sellPrice: 3000, createdAt: _epoch),
-    InventoryItem(id: 'INV-022', name: 'Seat covers', category: 'Body & Frame', quantity: 5, buyPrice: 9000, sellPrice: 15000, createdAt: _epoch),
-    InventoryItem(id: 'INV-023', name: 'Tank Cover', category: 'Body & Frame', quantity: 5, buyPrice: 4500, sellPrice: 7000, createdAt: _epoch),
-    InventoryItem(id: 'INV-024', name: 'Foot rest', category: 'Body & Frame', quantity: 10, buyPrice: 2500, sellPrice: 6000, createdAt: _epoch),
-    InventoryItem(id: 'INV-025', name: 'Fork pipes', category: 'Suspension', quantity: 1, buyPrice: 33000, sellPrice: 50000, createdAt: _epoch),
-    InventoryItem(id: 'INV-026', name: 'Shock absorbers', category: 'Suspension', quantity: 1, buyPrice: 45000, sellPrice: 60000, createdAt: _epoch),
-    InventoryItem(id: 'INV-027', name: 'Carburetor kit', category: 'Fuel System', quantity: 10, buyPrice: 3500, sellPrice: 8000, createdAt: _epoch),
-    InventoryItem(id: 'INV-028', name: 'Boda oil', category: 'Fuel System', quantity: 9, buyPrice: 1500, sellPrice: 3000, createdAt: _epoch),
-    InventoryItem(id: 'INV-029', name: 'Chains (Standard)', category: 'Transmission', quantity: 2, buyPrice: 9000, sellPrice: 13000, createdAt: _epoch),
-    InventoryItem(id: 'INV-030', name: 'Chains (Heavy Duty)', category: 'Transmission', quantity: 3, buyPrice: 10000, sellPrice: 15000, createdAt: _epoch),
-    InventoryItem(id: 'INV-031', name: 'Clutch plates (Kevla)', category: 'Transmission', quantity: 5, buyPrice: 6500, sellPrice: 10000, createdAt: _epoch),
-    InventoryItem(id: 'INV-032', name: 'Clutch plates (K&K)', category: 'Transmission', quantity: 20, buyPrice: 3300, sellPrice: 5000, createdAt: _epoch),
-    InventoryItem(id: 'INV-033', name: 'Front sprockets', category: 'Transmission', quantity: 20, buyPrice: 1500, sellPrice: 3000, createdAt: _epoch),
-    InventoryItem(id: 'INV-034', name: 'Kickstarter', category: 'Transmission', quantity: 5, buyPrice: 7500, sellPrice: 10000, createdAt: _epoch),
-    InventoryItem(id: 'INV-035', name: 'Helmet Half (Mazuri Sana)', category: 'Accessories', quantity: 2, buyPrice: 28000, sellPrice: 35000, createdAt: _epoch),
-    InventoryItem(id: 'INV-036', name: 'Helmet Full (Bajaj)', category: 'Accessories', quantity: 3, buyPrice: 25000, sellPrice: 30000, createdAt: _epoch),
-    InventoryItem(id: 'INV-037', name: 'Helmet Full (Other)', category: 'Accessories', quantity: 1, buyPrice: 30000, sellPrice: 40000, createdAt: _epoch),
-    InventoryItem(id: 'INV-038', name: 'Helmet glasses', category: 'Accessories', quantity: 6, buyPrice: 4000, sellPrice: 8000, createdAt: _epoch),
-    InventoryItem(id: 'INV-039', name: 'Verma Tyre (Yellow)', category: 'Accessories', quantity: 1, buyPrice: 74000, sellPrice: 88000, createdAt: _epoch),
-    InventoryItem(id: 'INV-040', name: 'Golden Boy Tubes', category: 'Accessories', quantity: 10, buyPrice: 10000, sellPrice: 13000, createdAt: _epoch),
+    InventoryItem(id: 'INV-010', name: 'Block tensioner', category: 'Engine Parts', quantity: 5, buyPrice: 3500, sellPrice: 6000, createdAt: _epoch),
+    InventoryItem(id: 'INV-011', name: 'Oil Petrol', category: 'Engine Parts', quantity: 2, buyPrice: 35000, sellPrice: 10000, createdAt: _epoch),
+    InventoryItem(id: 'INV-012', name: 'Shell (1 box/12pcs)', category: 'Engine Parts', quantity: 12, buyPrice: 18500, sellPrice: 17000, createdAt: _epoch),
+    InventoryItem(id: 'INV-013', name: 'Oil Pumps', category: 'Engine Parts', quantity: 3, buyPrice: 7500, sellPrice: 10000, createdAt: _epoch),
+    InventoryItem(id: 'INV-014', name: 'Valve Seals', category: 'Engine Parts', quantity: 2, buyPrice: 4000, sellPrice: 7000, createdAt: _epoch),
+
+    // Brake System
+    InventoryItem(id: 'INV-015', name: 'Brake pads (Front)', category: 'Brake System', quantity: 20, buyPrice: 3500, sellPrice: 5000, createdAt: _epoch),
+    InventoryItem(id: 'INV-016', name: 'Brake pads (Hind)', category: 'Brake System', quantity: 20, buyPrice: 3500, sellPrice: 6000, createdAt: _epoch),
+    InventoryItem(id: 'INV-017', name: 'Brake shoes', category: 'Brake System', quantity: 5, buyPrice: 5000, sellPrice: 7000, createdAt: _epoch),
+    InventoryItem(id: 'INV-018', name: 'Brake line', category: 'Brake System', quantity: 10, buyPrice: 1500, sellPrice: 4000, createdAt: _epoch),
+    InventoryItem(id: 'INV-019', name: 'Brake pedal', category: 'Brake System', quantity: 5, buyPrice: 5500, sellPrice: 11000, createdAt: _epoch),
+    InventoryItem(id: 'INV-020', name: 'Brake fluid', category: 'Brake System', quantity: 4, buyPrice: 5000, sellPrice: 8000, createdAt: _epoch),
+    InventoryItem(id: 'INV-021', name: 'Brake II cable', category: 'Brake System', quantity: 10, buyPrice: 2300, sellPrice: 4000, createdAt: _epoch),
+    InventoryItem(id: 'INV-022', name: 'Brake springs', category: 'Brake System', quantity: 20, buyPrice: 500, sellPrice: 1000, createdAt: _epoch),
+
+    // Electrical
+    InventoryItem(id: 'INV-023', name: 'Battery 2.5', category: 'Electrical', quantity: 2, buyPrice: 22000, sellPrice: 28000, createdAt: _epoch),
+    InventoryItem(id: 'INV-024', name: 'Battery 6.5', category: 'Electrical', quantity: 2, buyPrice: 34000, sellPrice: 45000, createdAt: _epoch),
+    InventoryItem(id: 'INV-025', name: 'Head bulbs', category: 'Electrical', quantity: 50, buyPrice: 700, sellPrice: 1000, createdAt: _epoch),
+    InventoryItem(id: 'INV-026', name: 'Tail bulbs', category: 'Electrical', quantity: 5, buyPrice: 3000, sellPrice: 1000, createdAt: _epoch),
+    InventoryItem(id: 'INV-027', name: 'Indicator bulb', category: 'Electrical', quantity: 10, buyPrice: 2000, sellPrice: 5000, createdAt: _epoch),
+    InventoryItem(id: 'INV-028', name: 'Bulb holders', category: 'Electrical', quantity: 10, buyPrice: 220, sellPrice: 500, createdAt: _epoch),
+    InventoryItem(id: 'INV-029', name: 'Starter Coil', category: 'Electrical', quantity: 10, buyPrice: 4000, sellPrice: 8000, createdAt: _epoch),
+    InventoryItem(id: 'INV-030', name: 'Main Switch (Small)', category: 'Electrical', quantity: 5, buyPrice: 3000, sellPrice: 5000, createdAt: _epoch),
+    InventoryItem(id: 'INV-031', name: 'Main Switch (Big)', category: 'Electrical', quantity: 1, buyPrice: 9000, sellPrice: 15000, createdAt: _epoch),
+    InventoryItem(id: 'INV-032', name: 'Dimmer Switch (Left)', category: 'Electrical', quantity: 3, buyPrice: 15000, sellPrice: 10000, createdAt: _epoch),
+    InventoryItem(id: 'INV-033', name: 'Dimmer Switch (Pair)', category: 'Electrical', quantity: 1, buyPrice: 15000, sellPrice: 20000, createdAt: _epoch),
+    InventoryItem(id: 'INV-034', name: 'Horn (Engoombe)', category: 'Electrical', quantity: 5, buyPrice: 2500, sellPrice: 5000, createdAt: _epoch),
+    InventoryItem(id: 'INV-035', name: 'Plug Cap', category: 'Electrical', quantity: 10, buyPrice: 1300, sellPrice: 3000, createdAt: _epoch),
+    InventoryItem(id: 'INV-036', name: 'Plugs (Standard)', category: 'Electrical', quantity: 3, buyPrice: 1000, sellPrice: 3000, createdAt: _epoch),
+    InventoryItem(id: 'INV-037', name: 'Plugs (CR8)', category: 'Electrical', quantity: 2, buyPrice: 12000, sellPrice: 4000, createdAt: _epoch),
+
+    // Body & Frame
+    InventoryItem(id: 'INV-038', name: 'Side mirrors', category: 'Body & Frame', quantity: 10, buyPrice: 4500, sellPrice: 3000, createdAt: _epoch),
+    InventoryItem(id: 'INV-039', name: 'Silver mirror', category: 'Body & Frame', quantity: 2, buyPrice: 10000, sellPrice: 7000, createdAt: _epoch),
+    InventoryItem(id: 'INV-040', name: 'Seat covers (Standard)', category: 'Body & Frame', quantity: 5, buyPrice: 9000, sellPrice: 15000, createdAt: _epoch),
+    InventoryItem(id: 'INV-041', name: 'Tank Cover', category: 'Body & Frame', quantity: 5, buyPrice: 4500, sellPrice: 7000, createdAt: _epoch),
+    InventoryItem(id: 'INV-042', name: 'Foot rest', category: 'Body & Frame', quantity: 10, buyPrice: 2500, sellPrice: 6000, createdAt: _epoch),
+    InventoryItem(id: 'INV-043', name: 'Handle lever (Obugalo)', category: 'Body & Frame', quantity: 10, buyPrice: 2500, sellPrice: 3000, createdAt: _epoch),
+    InventoryItem(id: 'INV-044', name: 'Moulding', category: 'Body & Frame', quantity: 1, buyPrice: 8000, sellPrice: 2000, createdAt: _epoch),
+
+    // Suspension
+    InventoryItem(id: 'INV-045', name: 'Ball race', category: 'Suspension', quantity: 10, buyPrice: 4000, sellPrice: 6000, createdAt: _epoch),
+    InventoryItem(id: 'INV-046', name: 'Sy Headlamps', category: 'Suspension', quantity: 3, buyPrice: 10000, sellPrice: 18000, createdAt: _epoch),
+    InventoryItem(id: 'INV-047', name: 'Fork pipes', category: 'Suspension', quantity: 1, buyPrice: 33000, sellPrice: 50000, createdAt: _epoch),
+    InventoryItem(id: 'INV-048', name: 'Shock absorbers', category: 'Suspension', quantity: 1, buyPrice: 45000, sellPrice: 60000, createdAt: _epoch),
+
+    // Fuel System
+    InventoryItem(id: 'INV-049', name: 'Carburetor kit', category: 'Fuel System', quantity: 10, buyPrice: 3500, sellPrice: 8000, createdAt: _epoch),
+    InventoryItem(id: 'INV-050', name: 'Boda oil', category: 'Fuel System', quantity: 9, buyPrice: 1500, sellPrice: 3000, createdAt: _epoch),
+
+    // Transmission
+    InventoryItem(id: 'INV-051', name: 'Chains (Standard)', category: 'Transmission', quantity: 2, buyPrice: 9000, sellPrice: 13000, createdAt: _epoch),
+    InventoryItem(id: 'INV-052', name: 'Chains (Heavy Duty)', category: 'Transmission', quantity: 3, buyPrice: 10000, sellPrice: 15000, createdAt: _epoch),
+    InventoryItem(id: 'INV-053', name: 'Enanga', category: 'Transmission', quantity: 2, buyPrice: 8000, sellPrice: 13000, createdAt: _epoch),
+    InventoryItem(id: 'INV-054', name: 'Clutch plates (K&K)', category: 'Transmission', quantity: 20, buyPrice: 3300, sellPrice: 5000, createdAt: _epoch),
+    InventoryItem(id: 'INV-055', name: 'Clutch plates (Kevla)', category: 'Transmission', quantity: 5, buyPrice: 6500, sellPrice: 10000, createdAt: _epoch),
+    InventoryItem(id: 'INV-056', name: 'Clutch plates (Yog)', category: 'Transmission', quantity: 5, buyPrice: 5000, sellPrice: 8000, createdAt: _epoch),
+    InventoryItem(id: 'INV-057', name: 'Clutch wire', category: 'Transmission', quantity: 100, buyPrice: 400, sellPrice: 1000, createdAt: _epoch),
+    InventoryItem(id: 'INV-058', name: 'Disc Complete', category: 'Transmission', quantity: 3, buyPrice: 14000, sellPrice: 25000, createdAt: _epoch),
+    InventoryItem(id: 'INV-059', name: 'Disc Incomplete', category: 'Transmission', quantity: 2, buyPrice: 7000, sellPrice: 15000, createdAt: _epoch),
+    InventoryItem(id: 'INV-060', name: 'Front sprockets', category: 'Transmission', quantity: 20, buyPrice: 1500, sellPrice: 3000, createdAt: _epoch),
+    InventoryItem(id: 'INV-061', name: 'Kickstarter', category: 'Transmission', quantity: 5, buyPrice: 7500, sellPrice: 10000, createdAt: _epoch),
+    InventoryItem(id: 'INV-062', name: 'Gear lever', category: 'Transmission', quantity: 5, buyPrice: 3500, sellPrice: 8000, createdAt: _epoch),
+    InventoryItem(id: 'INV-063', name: 'Chain adjuster', category: 'Transmission', quantity: 20, buyPrice: 1500, sellPrice: 3000, createdAt: _epoch),
+    InventoryItem(id: 'INV-064', name: 'Acc cable', category: 'Transmission', quantity: 10, buyPrice: 2400, sellPrice: 4000, createdAt: _epoch),
+    InventoryItem(id: 'INV-065', name: 'Double springs', category: 'Transmission', quantity: 10, buyPrice: 500, sellPrice: 1000, createdAt: _epoch),
+
+    // Accessories
+    InventoryItem(id: 'INV-066', name: 'Helmet Half (Mazuri)', category: 'Accessories', quantity: 2, buyPrice: 28000, sellPrice: 35000, createdAt: _epoch),
+    InventoryItem(id: 'INV-067', name: 'Helmet Full (Bajaj)', category: 'Accessories', quantity: 3, buyPrice: 25000, sellPrice: 30000, createdAt: _epoch),
+    InventoryItem(id: 'INV-068', name: 'Helmet Full (Other)', category: 'Accessories', quantity: 1, buyPrice: 30000, sellPrice: 40000, createdAt: _epoch),
+    InventoryItem(id: 'INV-069', name: 'Verma Tyre (Yellow)', category: 'Accessories', quantity: 1, buyPrice: 74000, sellPrice: 88000, createdAt: _epoch),
+    InventoryItem(id: 'INV-070', name: 'R2 Tyre with tube', category: 'Accessories', quantity: 1, buyPrice: 82000, sellPrice: 95000, createdAt: _epoch),
+    InventoryItem(id: 'INV-071', name: 'Golden Boy Tubes', category: 'Accessories', quantity: 4, buyPrice: 10000, sellPrice: 12000, createdAt: _epoch),
+    InventoryItem(id: 'INV-072', name: 'R2 Tubes', category: 'Accessories', quantity: 10, buyPrice: 5500, sellPrice: 10000, createdAt: _epoch),
+    InventoryItem(id: 'INV-073', name: 'CC Tubes', category: 'Accessories', quantity: 20, buyPrice: 5000, sellPrice: 9000, createdAt: _epoch),
+    InventoryItem(id: 'INV-074', name: 'CC Tyre (Front)', category: 'Accessories', quantity: 3, buyPrice: 30000, sellPrice: 42000, createdAt: _epoch),
+    InventoryItem(id: 'INV-075', name: 'CC Tyre (Behind)', category: 'Accessories', quantity: 3, buyPrice: 50000, sellPrice: 70000, createdAt: _epoch),
+    InventoryItem(id: 'INV-076', name: 'System (D&K)', category: 'Accessories', quantity: 2, buyPrice: 20000, sellPrice: 30000, createdAt: _epoch),
+    InventoryItem(id: 'INV-077', name: 'System (Kevla)', category: 'Accessories', quantity: 3, buyPrice: 28000, sellPrice: 35000, createdAt: _epoch),
+    InventoryItem(id: 'INV-078', name: 'System (Croc)', category: 'Accessories', quantity: 3, buyPrice: 28000, sellPrice: 35000, createdAt: _epoch),
+    InventoryItem(id: 'INV-079', name: 'System (Yog)', category: 'Accessories', quantity: 2, buyPrice: 30000, sellPrice: 35000, createdAt: _epoch),
+    InventoryItem(id: 'INV-080', name: 'Grease', category: 'Accessories', quantity: 3, buyPrice: 6000, sellPrice: 500, createdAt: _epoch),
+    InventoryItem(id: 'INV-081', name: 'Silicon Big', category: 'Accessories', quantity: 1, buyPrice: 45000, sellPrice: 6000, createdAt: _epoch),
+
+    // Bearings
+    InventoryItem(id: 'INV-082', name: 'Bearing 6304', category: 'Bearings', quantity: 20, buyPrice: 1300, sellPrice: 3000, createdAt: _epoch),
+    InventoryItem(id: 'INV-083', name: 'Bearing 6204', category: 'Bearings', quantity: 20, buyPrice: 1100, sellPrice: 3000, createdAt: _epoch),
+    InventoryItem(id: 'INV-084', name: 'Bearing 6301', category: 'Bearings', quantity: 20, buyPrice: 1100, sellPrice: 3000, createdAt: _epoch),
+    InventoryItem(id: 'INV-085', name: 'Bearing 6202', category: 'Bearings', quantity: 20, buyPrice: 1100, sellPrice: 3000, createdAt: _epoch),
+    InventoryItem(id: 'INV-086', name: 'Bearing 6201', category: 'Bearings', quantity: 20, buyPrice: 1000, sellPrice: 3000, createdAt: _epoch),
+    InventoryItem(id: 'INV-087', name: 'Bearing 6004', category: 'Bearings', quantity: 20, buyPrice: 1100, sellPrice: 3000, createdAt: _epoch),
+
+    // Seals
+    InventoryItem(id: 'INV-088', name: 'Engine Oil Seals (Set)', category: 'Seals', quantity: 5, buyPrice: 3500, sellPrice: 7000, createdAt: _epoch),
+    InventoryItem(id: 'INV-089', name: 'Front Fork Seals', category: 'Seals', quantity: 10, buyPrice: 1200, sellPrice: 3000, createdAt: _epoch),
+    InventoryItem(id: 'INV-090', name: 'Wheel Oil Seals', category: 'Seals', quantity: 10, buyPrice: 1000, sellPrice: 3000, createdAt: _epoch),
   ];
 
   String _selectedCategory = 'All Categories';
   SortOption _sortOption = SortOption.nameAsc;
+  bool _isLowStockAlertDismissed = false;
 
   @override
   void initState() {
@@ -377,7 +447,7 @@ class _InventoryPageState extends State<InventoryPage> {
               ),
             ),
           ),
-          if (_lowStockItems.isNotEmpty)
+          if (_lowStockItems.isNotEmpty && !_isLowStockAlertDismissed)
             SliverToBoxAdapter(
               child: Container(
                 width: double.infinity,
@@ -413,6 +483,16 @@ class _InventoryPageState extends State<InventoryPage> {
                         'View',
                         style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
                       ),
+                    ),
+                    IconButton(
+                      onPressed: () {
+                        setState(() {
+                          _isLowStockAlertDismissed = true;
+                        });
+                      },
+                      icon: const Icon(Icons.close, size: 18, color: Colors.grey),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
                     ),
                   ],
                 ),
