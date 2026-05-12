@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'pages/inventory_page.dart';
 
 void main() {
   runApp(const MyApp());
@@ -51,6 +52,30 @@ class Order {
     required this.amount,
     required this.status,
   });
+}
+
+class InventoryItem {
+  String id;
+  String name;
+  String category;
+  int quantity;
+  double price;
+  String unit;
+  String description;
+  DateTime createdAt;
+
+  InventoryItem({
+    required this.id,
+    required this.name,
+    required this.category,
+    required this.quantity,
+    required this.price,
+    this.unit = 'pcs',
+    this.description = '',
+    DateTime? createdAt,
+  }) : createdAt = createdAt ?? DateTime.now();
+
+  double get totalValue => quantity * price;
 }
 
 enum AccountType {
@@ -285,7 +310,11 @@ class _POSDashboardState extends State<POSDashboard> {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {},
+        onPressed: () {
+          setState(() {
+            _selectedIndex = 1;
+          });
+        },
         icon: const Icon(Icons.add),
         label: const Text('New Sale'),
       ),
@@ -520,8 +549,8 @@ class _POSDashboardState extends State<POSDashboard> {
                 _SidebarItem(
                   icon: Icons.attach_money_outlined,
                   title: 'Expenses',
-                  selected: false,
-                  onTap: () {},
+                  selected: _selectedIndex == 4,
+                  onTap: () => _selectNavItem(4),
                 ),
                 _SidebarItem(
                   icon: Icons.bar_chart_outlined,
@@ -665,9 +694,7 @@ class _POSDashboardState extends State<POSDashboard> {
   }
 
   Widget _buildInventoryBody() {
-    return const Center(
-      child: Text('Inventory - Coming Soon'),
-    );
+    return const InventoryPage();
   }
 
   Widget _buildReportsBody() {
