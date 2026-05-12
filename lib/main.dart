@@ -77,6 +77,58 @@ class InventoryItem {
     DateTime? createdAt,
   }) : createdAt = createdAt ?? DateTime.now();
 
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'name': name,
+      'category': category,
+      'quantity': quantity,
+      'buyPrice': buyPrice,
+      'sellPrice': sellPrice,
+      'unit': unit,
+      'description': description,
+      'createdAt': createdAt.toIso8601String(),
+    };
+  }
+
+  factory InventoryItem.fromMap(Map<String, dynamic> map) {
+    return InventoryItem(
+      id: map['id'],
+      name: map['name'],
+      category: map['category'],
+      quantity: map['quantity'],
+      buyPrice: map['buyPrice'],
+      sellPrice: map['sellPrice'],
+      unit: map['unit'] ?? 'pcs',
+      description: map['description'] ?? '',
+      createdAt: DateTime.parse(map['createdAt']),
+    );
+  }
+
+  InventoryItem copyWith({
+    String? id,
+    String? name,
+    String? category,
+    int? quantity,
+    double? buyPrice,
+    double? sellPrice,
+    String? unit,
+    String? description,
+    DateTime? createdAt,
+  }) {
+    return InventoryItem(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      category: category ?? this.category,
+      quantity: quantity ?? this.quantity,
+      buyPrice: buyPrice ?? this.buyPrice,
+      sellPrice: sellPrice ?? this.sellPrice,
+      unit: unit ?? this.unit,
+      description: description ?? this.description,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+
   double get totalCost => quantity * buyPrice;
   double get totalSell => quantity * sellPrice;
   double get profit => totalSell - totalCost;

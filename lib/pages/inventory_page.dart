@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../main.dart';
+import '../db_helper.dart';
 
 class InventoryPage extends StatefulWidget {
   const InventoryPage({super.key});
@@ -20,6 +21,8 @@ enum SortOption {
 
 class _InventoryPageState extends State<InventoryPage> {
   final List<InventoryItem> _inventoryItems = [];
+  bool _isSyncing = false;
+  String _syncMessage = '';
 
   final List<String> _categories = [
     'All Categories',
@@ -33,8 +36,163 @@ class _InventoryPageState extends State<InventoryPage> {
     'Accessories',
   ];
 
+  static final DateTime _epoch = DateTime(2024, 1, 1);
+
+  final List<InventoryItem> _defaultInventoryItems = [
+    InventoryItem(id: 'INV-001', name: 'Timing chain', category: 'Engine Parts', quantity: 10, buyPrice: 2500, sellPrice: 5000, createdAt: _epoch),
+    InventoryItem(id: 'INV-002', name: 'Valves', category: 'Engine Parts', quantity: 10, buyPrice: 2500, sellPrice: 5000, createdAt: _epoch),
+    InventoryItem(id: 'INV-003', name: 'Pistons', category: 'Engine Parts', quantity: 10, buyPrice: 8300, sellPrice: 15000, createdAt: _epoch),
+    InventoryItem(id: 'INV-004', name: 'Piston Rings', category: 'Engine Parts', quantity: 3, buyPrice: 4000, sellPrice: 8000, createdAt: _epoch),
+    InventoryItem(id: 'INV-005', name: 'Gaskets (Metal)', category: 'Engine Parts', quantity: 50, buyPrice: 500, sellPrice: 3000, createdAt: _epoch),
+    InventoryItem(id: 'INV-006', name: 'Gaskets (Paper)', category: 'Engine Parts', quantity: 50, buyPrice: 500, sellPrice: 3000, createdAt: _epoch),
+    InventoryItem(id: 'INV-007', name: 'Gaskets (Magnetal)', category: 'Engine Parts', quantity: 50, buyPrice: 500, sellPrice: 3000, createdAt: _epoch),
+    InventoryItem(id: 'INV-008', name: 'Gaskets (Clutch - Verma)', category: 'Engine Parts', quantity: 10, buyPrice: 3500, sellPrice: 6000, createdAt: _epoch),
+    InventoryItem(id: 'INV-009', name: 'Gaskets (Magnetal - Verma)', category: 'Engine Parts', quantity: 10, buyPrice: 3000, sellPrice: 6000, createdAt: _epoch),
+    InventoryItem(id: 'INV-010', name: 'Oil Pumps', category: 'Engine Parts', quantity: 3, buyPrice: 7500, sellPrice: 10000, createdAt: _epoch),
+    InventoryItem(id: 'INV-011', name: 'Brake pads (Front)', category: 'Brake System', quantity: 20, buyPrice: 3500, sellPrice: 5000, createdAt: _epoch),
+    InventoryItem(id: 'INV-012', name: 'Brake pads (Hind)', category: 'Brake System', quantity: 20, buyPrice: 3500, sellPrice: 6000, createdAt: _epoch),
+    InventoryItem(id: 'INV-013', name: 'Brake shoes', category: 'Brake System', quantity: 5, buyPrice: 5000, sellPrice: 7000, createdAt: _epoch),
+    InventoryItem(id: 'INV-014', name: 'Brake line', category: 'Brake System', quantity: 10, buyPrice: 1500, sellPrice: 4000, createdAt: _epoch),
+    InventoryItem(id: 'INV-015', name: 'Brake pedal', category: 'Brake System', quantity: 5, buyPrice: 5500, sellPrice: 11000, createdAt: _epoch),
+    InventoryItem(id: 'INV-016', name: 'Battery 2.5', category: 'Electrical', quantity: 2, buyPrice: 22000, sellPrice: 28000, createdAt: _epoch),
+    InventoryItem(id: 'INV-017', name: 'Battery 6.5', category: 'Electrical', quantity: 2, buyPrice: 34000, sellPrice: 45000, createdAt: _epoch),
+    InventoryItem(id: 'INV-018', name: 'Head bulbs', category: 'Electrical', quantity: 50, buyPrice: 700, sellPrice: 1000, createdAt: _epoch),
+    InventoryItem(id: 'INV-019', name: 'Starter Coil', category: 'Electrical', quantity: 10, buyPrice: 4000, sellPrice: 8000, createdAt: _epoch),
+    InventoryItem(id: 'INV-020', name: 'Dimmer Switch (Pair)', category: 'Electrical', quantity: 1, buyPrice: 15000, sellPrice: 10000, createdAt: _epoch),
+    InventoryItem(id: 'INV-021', name: 'Side mirrors', category: 'Body & Frame', quantity: 10, buyPrice: 4500, sellPrice: 3000, createdAt: _epoch),
+    InventoryItem(id: 'INV-022', name: 'Seat covers', category: 'Body & Frame', quantity: 5, buyPrice: 9000, sellPrice: 15000, createdAt: _epoch),
+    InventoryItem(id: 'INV-023', name: 'Tank Cover', category: 'Body & Frame', quantity: 5, buyPrice: 4500, sellPrice: 7000, createdAt: _epoch),
+    InventoryItem(id: 'INV-024', name: 'Foot rest', category: 'Body & Frame', quantity: 10, buyPrice: 2500, sellPrice: 6000, createdAt: _epoch),
+    InventoryItem(id: 'INV-025', name: 'Fork pipes', category: 'Suspension', quantity: 1, buyPrice: 33000, sellPrice: 50000, createdAt: _epoch),
+    InventoryItem(id: 'INV-026', name: 'Shock absorbers', category: 'Suspension', quantity: 1, buyPrice: 45000, sellPrice: 60000, createdAt: _epoch),
+    InventoryItem(id: 'INV-027', name: 'Carburetor kit', category: 'Fuel System', quantity: 10, buyPrice: 3500, sellPrice: 8000, createdAt: _epoch),
+    InventoryItem(id: 'INV-028', name: 'Boda oil', category: 'Fuel System', quantity: 9, buyPrice: 1500, sellPrice: 3000, createdAt: _epoch),
+    InventoryItem(id: 'INV-029', name: 'Chains (Standard)', category: 'Transmission', quantity: 2, buyPrice: 9000, sellPrice: 13000, createdAt: _epoch),
+    InventoryItem(id: 'INV-030', name: 'Chains (Heavy Duty)', category: 'Transmission', quantity: 3, buyPrice: 10000, sellPrice: 15000, createdAt: _epoch),
+    InventoryItem(id: 'INV-031', name: 'Clutch plates (Kevla)', category: 'Transmission', quantity: 5, buyPrice: 6500, sellPrice: 10000, createdAt: _epoch),
+    InventoryItem(id: 'INV-032', name: 'Clutch plates (K&K)', category: 'Transmission', quantity: 20, buyPrice: 3300, sellPrice: 5000, createdAt: _epoch),
+    InventoryItem(id: 'INV-033', name: 'Front sprockets', category: 'Transmission', quantity: 20, buyPrice: 1500, sellPrice: 3000, createdAt: _epoch),
+    InventoryItem(id: 'INV-034', name: 'Kickstarter', category: 'Transmission', quantity: 5, buyPrice: 7500, sellPrice: 10000, createdAt: _epoch),
+    InventoryItem(id: 'INV-035', name: 'Helmet Half (Mazuri Sana)', category: 'Accessories', quantity: 2, buyPrice: 28000, sellPrice: 35000, createdAt: _epoch),
+    InventoryItem(id: 'INV-036', name: 'Helmet Full (Bajaj)', category: 'Accessories', quantity: 3, buyPrice: 25000, sellPrice: 30000, createdAt: _epoch),
+    InventoryItem(id: 'INV-037', name: 'Helmet Full (Other)', category: 'Accessories', quantity: 1, buyPrice: 30000, sellPrice: 40000, createdAt: _epoch),
+    InventoryItem(id: 'INV-038', name: 'Helmet glasses', category: 'Accessories', quantity: 6, buyPrice: 4000, sellPrice: 8000, createdAt: _epoch),
+    InventoryItem(id: 'INV-039', name: 'Verma Tyre (Yellow)', category: 'Accessories', quantity: 1, buyPrice: 74000, sellPrice: 88000, createdAt: _epoch),
+    InventoryItem(id: 'INV-040', name: 'Golden Boy Tubes', category: 'Accessories', quantity: 10, buyPrice: 10000, sellPrice: 13000, createdAt: _epoch),
+  ];
+
   String _selectedCategory = 'All Categories';
   SortOption _sortOption = SortOption.nameAsc;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFromDatabase();
+  }
+
+  Future<void> _loadFromDatabase() async {
+    final items = await DatabaseHelper.instance.getAllInventoryItems();
+    if (items.isNotEmpty) {
+      setState(() {
+        _inventoryItems.clear();
+        _inventoryItems.addAll(
+          items.map((map) => InventoryItem.fromMap(map)),
+        );
+      });
+    }
+  }
+
+  Future<void> _syncToDatabase() async {
+    setState(() {
+      _isSyncing = true;
+      _syncMessage = 'Creating local storage...';
+    });
+
+    String snackMessage = '';
+    Color snackColor = Colors.green;
+
+    try {
+      await Future.delayed(const Duration(seconds: 1));
+
+      final count = await DatabaseHelper.instance.getCount();
+      if (count == 0) {
+        setState(() {
+          _syncMessage = 'Inserting default inventory data...';
+        });
+        await Future.delayed(const Duration(seconds: 1));
+
+        final batchItems = _defaultInventoryItems.map((item) => item.toMap()).toList();
+        await DatabaseHelper.instance.insertAllInventoryItems(batchItems);
+        setState(() {
+          _syncMessage = 'Synced ${_defaultInventoryItems.length} items successfully!';
+        });
+      } else {
+        setState(() {
+          _syncMessage = 'Data already exists ($count items). Data is up to date!';
+        });
+      }
+
+      await Future.delayed(const Duration(seconds: 1));
+      await _loadFromDatabase();
+      snackMessage = _syncMessage;
+      snackColor = Colors.green;
+    } catch (e) {
+      setState(() {
+        _syncMessage = 'Error: $e';
+      });
+      snackMessage = _syncMessage;
+      snackColor = Colors.red;
+    } finally {
+      setState(() {
+        _isSyncing = false;
+      });
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(snackMessage),
+            backgroundColor: snackColor,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            margin: const EdgeInsets.all(16),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+
+  void _showSyncDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.sync, size: 24),
+            SizedBox(width: 8),
+            Text('Syncing Data'),
+          ],
+        ),
+        content: SizedBox(
+          width: 200,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const CircularProgressIndicator(),
+              const SizedBox(height: 16),
+              Text(
+                _syncMessage.isEmpty ? 'Preparing sync...' : _syncMessage,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 13),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    _syncToDatabase();
+  }
 
   List<InventoryItem> get _filteredItems {
     var items = List<InventoryItem>.from(_inventoryItems);
@@ -87,6 +245,20 @@ class _InventoryPageState extends State<InventoryPage> {
           style: TextStyle(fontWeight: FontWeight.w700, fontSize: 20),
         ),
         actions: [
+          if (_isSyncing)
+            const Padding(
+              padding: EdgeInsets.only(right: 8),
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
+          IconButton(
+            icon: Icon(Icons.sync, color: _isSyncing ? Colors.blue : Colors.black54),
+            onPressed: _isSyncing ? null : () => _showSyncDialog(),
+          ),
+          const SizedBox(width: 4),
           IconButton(
             icon: const Icon(Icons.search, color: Colors.black54),
             onPressed: () {
