@@ -228,6 +228,9 @@ class _POSDashboardState extends State<POSDashboard> {
   @override
   Widget build(BuildContext context) {
     final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final isShortScreen = screenHeight < 600;
+    final shouldHideNav = isLandscape || isShortScreen;
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -284,7 +287,7 @@ class _POSDashboardState extends State<POSDashboard> {
           ),
         ],
       ),
-      bottomNavigationBar: isLandscape
+      bottomNavigationBar: shouldHideNav
           ? null
           : NavigationBar(
               selectedIndex: _selectedIndex,
@@ -316,7 +319,7 @@ class _POSDashboardState extends State<POSDashboard> {
                 ),
               ],
             ),
-      floatingActionButton: isLandscape || _selectedIndex == 2
+      floatingActionButton: shouldHideNav || _selectedIndex == 2
           ? null
           : FloatingActionButton.extended(
               onPressed: () {
