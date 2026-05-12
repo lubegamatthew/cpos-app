@@ -621,7 +621,7 @@ class _PosProductCard extends StatelessWidget {
                   ],
                 ),
               ),
-              const Icon(Icons.shopping_cart_outlined, color: Colors.white),
+              const Icon(Icons.add_circle_outline, color: Colors.green),
             ],
           ),
         ),
