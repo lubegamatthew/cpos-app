@@ -9,72 +9,18 @@ class InventoryPage extends StatefulWidget {
 }
 
 class _InventoryPageState extends State<InventoryPage> {
-  final List<InventoryItem> _inventoryItems = [
-    InventoryItem(
-      id: 'INV-001',
-      name: 'Coca-Cola 300ml',
-      category: 'Beverages',
-      quantity: 150,
-      price: 2500,
-      unit: 'pcs',
-      description: 'Coca-Cola classic 300ml bottle',
-    ),
-    InventoryItem(
-      id: 'INV-002',
-      name: 'Ugali Flour 1kg',
-      category: 'Groceries',
-      quantity: 80,
-      price: 8500,
-      unit: 'bags',
-      description: 'Aisha Ugali flour 1kg pack',
-    ),
-    InventoryItem(
-      id: 'INV-003',
-      name: 'Cooking Oil 1L',
-      category: 'Groceries',
-      quantity: 45,
-      price: 12000,
-      unit: 'bottles',
-      description: 'Sunflower cooking oil 1L',
-    ),
-    InventoryItem(
-      id: 'INV-004',
-      name: 'Bread Loaf',
-      category: 'Bakery',
-      quantity: 30,
-      price: 5000,
-      unit: 'loaves',
-      description: 'Fresh bread loaf 400g',
-    ),
-    InventoryItem(
-      id: 'INV-005',
-      name: 'Milk 500ml',
-      category: 'Dairy',
-      quantity: 200,
-      price: 3500,
-      unit: 'cartons',
-      description: 'Fresh full cream milk 500ml',
-    ),
-    InventoryItem(
-      id: 'INV-006',
-      name: 'Tomatoes 1kg',
-      category: 'Vegetables',
-      quantity: 60,
-      price: 4000,
-      unit: 'kg',
-      description: 'Fresh farm tomatoes',
-    ),
-  ];
+  final List<InventoryItem> _inventoryItems = [];
 
   final List<String> _categories = [
     'All Categories',
-    'Beverages',
-    'Groceries',
-    'Bakery',
-    'Dairy',
-    'Vegetables',
-    'Snacks',
-    'Household',
+    'Engine Parts',
+    'Brake System',
+    'Electrical',
+    'Body & Frame',
+    'Suspension',
+    'Fuel System',
+    'Transmission',
+    'Accessories',
   ];
 
   String _selectedCategory = 'All Categories';
@@ -83,12 +29,10 @@ class _InventoryPageState extends State<InventoryPage> {
   List<InventoryItem> get _filteredItems {
     var items = List<InventoryItem>.from(_inventoryItems);
 
-    // Filter by category
     if (_selectedCategory != 'All Categories') {
       items = items.where((item) => item.category == _selectedCategory).toList();
     }
 
-    // Sort
     switch (_sortOption) {
       case SortOption.nameAsc:
         items.sort((a, b) => a.name.compareTo(b.name));
@@ -206,7 +150,6 @@ class _InventoryPageState extends State<InventoryPage> {
       ),
       body: Column(
         children: [
-          // Category chips bar
           SizedBox(
             height: 48,
             child: ListView(
@@ -251,7 +194,6 @@ class _InventoryPageState extends State<InventoryPage> {
             ),
           ),
 
-          // Low stock warning banner
           if (_lowStockItems.isNotEmpty)
             Container(
               width: double.infinity,
@@ -292,7 +234,6 @@ class _InventoryPageState extends State<InventoryPage> {
               ),
             ),
 
-          // Inventory stats
           Container(
             margin: const EdgeInsets.symmetric(horizontal: 12),
             padding: const EdgeInsets.all(16),
@@ -341,7 +282,6 @@ class _InventoryPageState extends State<InventoryPage> {
 
           const SizedBox(height: 12),
 
-          // Inventory list
           Expanded(
             child: _filteredItems.isEmpty
                 ? Center(
@@ -349,23 +289,34 @@ class _InventoryPageState extends State<InventoryPage> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
-                          Icons.search_off,
-                          size: 64,
-                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
+                          Icons.inventory_outlined,
+                          size: 80,
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.15),
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'No items found',
+                          'No motorcycle spare parts yet',
                           style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                 color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                fontWeight: FontWeight.w600,
                               ),
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Try adjusting your filters',
+                          'Tap + to add your first spare part',
                           style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                 color: Theme.of(context).colorScheme.onSurfaceVariant,
                               ),
+                        ),
+                        const SizedBox(height: 16),
+                        FilledButton.icon(
+                          onPressed: () => _showAddEditDialog(),
+                          icon: const Icon(Icons.add),
+                          label: const Text('Add Spare Part'),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: Theme.of(context).colorScheme.primary,
+                            foregroundColor: Colors.white,
+                          ),
                         ),
                       ],
                     ),
@@ -396,7 +347,7 @@ class _InventoryPageState extends State<InventoryPage> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showAddEditDialog(),
         icon: const Icon(Icons.add),
-        label: const Text('Add Item'),
+        label: const Text('Add Spare Part'),
         backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Colors.white,
       ),
@@ -404,7 +355,7 @@ class _InventoryPageState extends State<InventoryPage> {
   }
 
   List<InventoryItem> get _lowStockItems =>
-      _inventoryItems.where((item) => item.quantity < 50).toList();
+      _inventoryItems.where((item) => item.quantity < 5).toList();
 
   double _calculateTotalValue() {
     return _inventoryItems.fold(0.0, (sum, item) => sum + item.totalValue);
@@ -426,7 +377,7 @@ class _InventoryPageState extends State<InventoryPage> {
       builder: (context) {
         return AlertDialog(
           title: Text(
-            isEdit ? 'Edit Inventory Item' : 'Add New Inventory Item',
+            isEdit ? 'Edit Spare Part' : 'Add New Spare Part',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.w700,
                 ),
@@ -440,12 +391,12 @@ class _InventoryPageState extends State<InventoryPage> {
                 children: [
                   _buildFormField(
                     controller: nameController,
-                    label: 'Item Name *',
-                    hintText: 'e.g., Coca-Cola 300ml',
+                    label: 'Part Name *',
+                    hintText: 'e.g., Front Brake Disc',
                     icon: Icons.label_outlined,
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
-                        return 'Item name is required';
+                        return 'Part name is required';
                       }
                       return null;
                     },
@@ -454,7 +405,7 @@ class _InventoryPageState extends State<InventoryPage> {
                   _buildFormField(
                     controller: categoryController,
                     label: 'Category *',
-                    hintText: 'e.g., Beverages',
+                    hintText: 'e.g., Brake System',
                     icon: Icons.category_outlined,
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
@@ -518,9 +469,9 @@ class _InventoryPageState extends State<InventoryPage> {
                   _buildFormField(
                     controller: descriptionController,
                     label: 'Description',
-                    hintText: 'Optional item description',
+                    hintText: 'Optional part description (e.g., compatible models)',
                     icon: Icons.description_outlined,
-                    maxLines: 2,
+                    maxLines: 3,
                   ),
                 ],
               ),
@@ -563,7 +514,7 @@ class _InventoryPageState extends State<InventoryPage> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
-                        isEdit ? 'Item updated successfully' : 'Item added successfully',
+                        isEdit ? 'Spare part updated successfully' : 'Spare part added successfully',
                         style: const TextStyle(fontWeight: FontWeight.w500),
                       ),
                       backgroundColor: Colors.green,
@@ -579,7 +530,7 @@ class _InventoryPageState extends State<InventoryPage> {
               style: FilledButton.styleFrom(
                 backgroundColor: Theme.of(context).colorScheme.primary,
               ),
-              child: Text(isEdit ? 'Update' : 'Add Item'),
+              child: Text(isEdit ? 'Update' : 'Add Part'),
             ),
           ],
         );
@@ -692,17 +643,17 @@ class _InventoryPageState extends State<InventoryPage> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: item.quantity < 50
+                        color: item.quantity < 5
                             ? Colors.amber.withValues(alpha: 0.15)
                             : Colors.green.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
-                        item.quantity < 50 ? 'Low Stock' : 'In Stock',
+                        item.quantity < 5 ? 'Low Stock' : 'In Stock',
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
-                          color: item.quantity < 50 ? Colors.amber : Colors.green,
+                          color: item.quantity < 5 ? Colors.amber : Colors.green,
                         ),
                       ),
                     ),
@@ -803,7 +754,7 @@ class _InventoryPageState extends State<InventoryPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Item'),
+        title: const Text('Delete Spare Part'),
         content: Text(
           'Are you sure you want to delete "${item.name}"? This action cannot be undone.',
         ),
@@ -820,7 +771,7 @@ class _InventoryPageState extends State<InventoryPage> {
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: const Text('Item deleted'),
+                  content: const Text('Spare part deleted'),
                   backgroundColor: Colors.red,
                   behavior: SnackBarBehavior.floating,
                   shape: RoundedRectangleBorder(
@@ -1007,6 +958,7 @@ class _InventoryCard extends StatelessWidget {
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
                     item.name,
@@ -1018,33 +970,35 @@ class _InventoryCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 2),
-Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Flexible(
-                          child: Text(
-                            item.category,
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
-                            ),
-                            overflow: TextOverflow.ellipsis,
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          item.category,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        const Text('  •  '),
-                        Flexible(
-                          child: Text(
-                            '${item.quantity} ${item.unit}',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w500,
-                              color: item.quantity < 50 ? Colors.amber : Colors.green,
-                            ),
-                            overflow: TextOverflow.ellipsis,
+                      ),
+                      const Text('  •  '),
+                      Flexible(
+                        child: Text(
+                          item.quantity < 5
+                              ? '${item.quantity} ${item.unit} (low)'
+                              : '${item.quantity} ${item.unit}',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                            color: item.quantity < 5 ? Colors.amber : Colors.green,
                           ),
+                          overflow: TextOverflow.ellipsis,
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -1104,22 +1058,24 @@ Row(
 
   Color _getCategoryColor(String category) {
     switch (category) {
-      case 'Beverages':
+      case 'Engine Parts':
         return Colors.blue;
-      case 'Groceries':
-        return Colors.green;
-      case 'Bakery':
-        return Colors.orange;
-      case 'Dairy':
-        return Colors.purple;
-      case 'Vegetables':
-        return Colors.teal;
-      case 'Snacks':
+      case 'Brake System':
         return Colors.red;
-      case 'Household':
-        return Colors.indigo;
-      default:
+      case 'Electrical':
+        return Colors.amber;
+      case 'Body & Frame':
         return Colors.grey;
+      case 'Suspension':
+        return Colors.green;
+      case 'Fuel System':
+        return Colors.orange;
+      case 'Transmission':
+        return Colors.purple;
+      case 'Accessories':
+        return Colors.teal;
+      default:
+        return Colors.indigo;
     }
   }
 }
@@ -1189,7 +1145,7 @@ class _InventorySearchDelegate extends SearchDelegate<InventoryItem?> {
   }
 
   @override
-  String? get searchFieldLabel => 'Search inventory...';
+  String? get searchFieldLabel => 'Search spare parts...';
 
   @override
   List<Widget>? buildActions(BuildContext context) {
@@ -1286,22 +1242,24 @@ class _InventorySearchDelegate extends SearchDelegate<InventoryItem?> {
 
   Color _getCategoryColor(String category) {
     switch (category) {
-      case 'Beverages':
+      case 'Engine Parts':
         return Colors.blue;
-      case 'Groceries':
-        return Colors.green;
-      case 'Bakery':
-        return Colors.orange;
-      case 'Dairy':
-        return Colors.purple;
-      case 'Vegetables':
-        return Colors.teal;
-      case 'Snacks':
+      case 'Brake System':
         return Colors.red;
-      case 'Household':
-        return Colors.indigo;
-      default:
+      case 'Electrical':
+        return Colors.amber;
+      case 'Body & Frame':
         return Colors.grey;
+      case 'Suspension':
+        return Colors.green;
+      case 'Fuel System':
+        return Colors.orange;
+      case 'Transmission':
+        return Colors.purple;
+      case 'Accessories':
+        return Colors.teal;
+      default:
+        return Colors.indigo;
     }
   }
 }
