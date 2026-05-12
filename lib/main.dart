@@ -1,10 +1,36 @@
+import 'dart:async';
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'pages/inventory_page.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const MyApp());
+
+  // Log all Flutter rendering/assertion errors to console/logcat
+  FlutterError.onError = (FlutterErrorDetails details) {
+    FlutterError.dumpErrorToConsole(details);
+    log(
+      'Flutter Error: ${details.exception}',
+      name: 'cpos',
+      error: details.exception,
+      stackTrace: details.stack,
+    );
+  };
+
+  // Capture unhandled Dart errors
+  runZonedGuarded(
+    () => runApp(const MyApp()),
+    (error, stack) {
+      log(
+        'Unhandled Exception: $error',
+        name: 'cpos',
+        error: error,
+        stackTrace: stack,
+      );
+    },
+  );
 }
 
 class MyApp extends StatelessWidget {
