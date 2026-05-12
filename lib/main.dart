@@ -55,6 +55,11 @@ class MyApp extends StatelessWidget {
           ),
         ),
         textTheme: GoogleFonts.poppinsTextTheme(),
+        navigationBarTheme: const NavigationBarThemeData(
+          labelTextStyle: WidgetStatePropertyAll(
+            TextStyle(fontSize: 11),
+          ),
+        ),
       ),
       home: const POSDashboard(),
     );
@@ -305,7 +310,7 @@ class _POSDashboardState extends State<POSDashboard> {
     Order(id: '#1005', customer: 'Alex Brown', amount: 68000, status: 'Completed'),
   ];
 
-@override
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -363,38 +368,38 @@ class _POSDashboardState extends State<POSDashboard> {
           ),
         ],
       ),
-bottomNavigationBar: _selectedIndex == 0
-           ? NavigationBar(
-               selectedIndex: _selectedIndex,
-               onDestinationSelected: (index) {
-                 setState(() {
-                   _selectedIndex = index;
-                 });
-               },
-               destinations: const [
-                 NavigationDestination(
-                   icon: Icon(Icons.dashboard_outlined),
-                   label: 'Dashboard',
-                 ),
-                 NavigationDestination(
-                   icon: Icon(Icons.point_of_sale_outlined),
-                   label: 'POS',
-                 ),
-                 NavigationDestination(
-                   icon: Icon(Icons.inventory_outlined),
-                   label: 'Inventory',
-                 ),
-                 NavigationDestination(
-                   icon: Icon(Icons.bar_chart_outlined),
-                   label: 'Reports',
-                 ),
-                 NavigationDestination(
-                   icon: Icon(Icons.money_outlined),
-                   label: 'Expenses',
-                 ),
-               ],
-             )
-           : null,
+      bottomNavigationBar: _selectedIndex == 0
+          ? NavigationBar(
+              selectedIndex: _selectedIndex,
+              onDestinationSelected: (index) {
+                setState(() {
+                  _selectedIndex = index;
+                });
+              },
+              destinations: const [
+                NavigationDestination(
+                  icon: Icon(Icons.dashboard_outlined),
+                  label: 'Dashboard',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.point_of_sale_outlined),
+                  label: 'POS',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.inventory_outlined),
+                  label: 'Inventory',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.bar_chart_outlined),
+                  label: 'Reports',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.money_outlined),
+                  label: 'Expenses',
+                ),
+              ],
+            )
+          : null,
     );
   }
 
@@ -815,21 +820,23 @@ class _StatCard extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: color, size: 16),
+            Icon(icon, color: color, size: 14),
             const SizedBox(height: 2),
             Text(
               value,
               style: Theme.of(context).textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.bold,
+                    fontSize: 14,
                   ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
+            const SizedBox(height: 2),
             Text(
               title,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    fontSize: 10,
+                    fontSize: 11,
                   ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -914,7 +921,7 @@ class _SidebarItem extends StatelessWidget {
       title: Text(
         title,
         style: TextStyle(
-          fontSize: 13,
+          fontSize: 12,
           color: selected
               ? Theme.of(context).colorScheme.primary
               : Theme.of(context).colorScheme.onSurface,
@@ -945,12 +952,13 @@ class _SidebarSubItem extends StatelessWidget {
       contentPadding: const EdgeInsets.only(left: 56, right: 16),
       leading: Icon(
         icon,
-        size: 20,
+        size: 18,
         color: Theme.of(context).colorScheme.onSurfaceVariant,
       ),
       title: Text(
         title,
         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              fontSize: 12,
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
       ),
