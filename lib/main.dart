@@ -397,19 +397,8 @@ class _POSDashboardState extends State<POSDashboard> {
                   icon: Icon(Icons.money_outlined),
                   label: 'Expenses',
                 ),
-              ],
-            ),
-      floatingActionButton: shouldHideNav || _selectedIndex == 2
-          ? null
-          : FloatingActionButton.extended(
-              onPressed: () {
-                setState(() {
-                  _selectedIndex = 1;
-                });
-              },
-              icon: const Icon(Icons.add),
-              label: const Text('New Sale'),
-            ),
+               ],
+             ),
     );
   }
 
