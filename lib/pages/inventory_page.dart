@@ -8,6 +8,16 @@ class InventoryPage extends StatefulWidget {
   State<InventoryPage> createState() => _InventoryPageState();
 }
 
+enum SortOption {
+  nameAsc,
+  nameDesc,
+  quantityAsc,
+  quantityDesc,
+  priceAsc,
+  priceDesc,
+  valueDesc,
+}
+
 class _InventoryPageState extends State<InventoryPage> {
   final List<InventoryItem> _inventoryItems = [];
 
@@ -295,24 +305,22 @@ class _InventoryPageState extends State<InventoryPage> {
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'No motorcycle spare parts yet',
+                          'No data found!!',
                           style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                 color: Theme.of(context).colorScheme.onSurfaceVariant,
                                 fontWeight: FontWeight.w600,
                               ),
                         ),
                         const SizedBox(height: 4),
-                        Text(
-                          'Tap + to add your first spare part',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                              ),
-                        ),
+                        // const Text(
+                        //   'Tap + to add your first spare part',
+                        //   style: TextStyle(fontSize: 13),
+                        // ),
                         const SizedBox(height: 16),
                         FilledButton.icon(
                           onPressed: () => _showAddEditDialog(),
                           icon: const Icon(Icons.add),
-                          label: const Text('Add Spare Part'),
+                          label: const Text('Add Inventory'),
                           style: FilledButton.styleFrom(
                             backgroundColor: Theme.of(context).colorScheme.primary,
                             foregroundColor: Colors.white,
@@ -343,13 +351,6 @@ class _InventoryPageState extends State<InventoryPage> {
                   ),
           ),
         ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showAddEditDialog(),
-        icon: const Icon(Icons.add),
-        label: const Text('Add Spare Part'),
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        foregroundColor: Colors.white,
       ),
     );
   }
@@ -861,15 +862,9 @@ class _InventoryPageState extends State<InventoryPage> {
   }
 }
 
-enum SortOption {
-  nameAsc,
-  nameDesc,
-  quantityAsc,
-  quantityDesc,
-  priceAsc,
-  priceDesc,
-  valueDesc,
-}
+// =============================================
+// Helper Widgets (outside of _InventoryPageState)
+// =============================================
 
 class _DetailRow extends StatelessWidget {
   final IconData icon;
@@ -1203,7 +1198,7 @@ class _InventorySearchDelegate extends SearchDelegate<InventoryItem?> {
               child: Icon(Icons.inventory_outlined, color: _getCategoryColor(item.category), size: 18),
             ),
             title: Text(item.name),
-            subtitle: Text('${item.category} • UGX ${item.price.toStringAsFixed(0)} • ${item.quantity} in stock'),
+            subtitle: Text('${item.category}  •  UGX ${item.price.toStringAsFixed(0)}  •  ${item.quantity} in stock'),
             onTap: () {
               close(context, item);
             },

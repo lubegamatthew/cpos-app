@@ -309,15 +309,17 @@ class _POSDashboardState extends State<POSDashboard> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          setState(() {
-            _selectedIndex = 1;
-          });
-        },
-        icon: const Icon(Icons.add),
-        label: const Text('New Sale'),
-      ),
+      floatingActionButton: _selectedIndex != 2
+          ? FloatingActionButton.extended(
+              onPressed: () {
+                setState(() {
+                  _selectedIndex = 1;
+                });
+              },
+              icon: const Icon(Icons.add),
+              label: const Text('New Sale'),
+            )
+          : null,
     );
   }
 
