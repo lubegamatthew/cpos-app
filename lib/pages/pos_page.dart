@@ -341,6 +341,7 @@ class _PosPageState extends State<PosPage> {
                           heroTag: 'cart_fab',
                           onPressed: _cart.isEmpty ? null : _showCartBottomSheet,
                           backgroundColor: Theme.of(context).colorScheme.primary,
+                          foregroundColor: Colors.white,
                           child: const Icon(Icons.shopping_cart_outlined),
                         ),
                         if (_cart.isNotEmpty)
@@ -620,7 +621,7 @@ class _PosProductCard extends StatelessWidget {
                   ],
                 ),
               ),
-              const Icon(Icons.shopping_cart_outlined, color: Colors.green),
+              const Icon(Icons.shopping_cart_outlined, color: Colors.white),
             ],
           ),
         ),
