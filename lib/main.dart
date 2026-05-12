@@ -278,16 +278,16 @@ class _POSDashboardState extends State<POSDashboard> {
             label: 'POS',
           ),
           NavigationDestination(
-            icon: Icon(Icons.inventory_2_outlined),
-            label: 'Products',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.receipt_long_outlined),
-            label: 'Orders',
+            icon: Icon(Icons.inventory_outlined),
+            label: 'Inventory',
           ),
           NavigationDestination(
             icon: Icon(Icons.bar_chart_outlined),
             label: 'Reports',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.money_outlined),
+            label: 'Expenses',
           ),
         ],
       ),
@@ -517,24 +517,10 @@ class _POSDashboardState extends State<POSDashboard> {
                   onTap: () => _selectNavItem(1),
                 ),
                 _SidebarItem(
-                  icon: Icons.inventory_2_outlined,
-                  title: 'Products',
+                  icon: Icons.inventory_outlined,
+                  title: 'Inventory',
                   selected: _selectedIndex == 2,
                   onTap: () => _selectNavItem(2),
-                ),
-                _SidebarItem(
-                  icon: Icons.receipt_long_outlined,
-                  title: 'Orders',
-                  selected: _selectedIndex == 3,
-                  onTap: () => _selectNavItem(3),
-                ),
-                _FinancialReportsDropdown(
-                  expanded: _financialReportsExpanded,
-                  onToggle: () {
-                    setState(() {
-                      _financialReportsExpanded = !_financialReportsExpanded;
-                    });
-                  },
                 ),
                 if (_financialReportsExpanded) ...[
                   _SidebarSubItem(
@@ -560,6 +546,11 @@ class _POSDashboardState extends State<POSDashboard> {
                   _SidebarSubItem(
                     icon: Icons.assessment_outlined,
                     title: 'Sales Report',
+                    onTap: () {},
+                  ),
+                  _SidebarSubItem(
+                    icon: Icons.money_outlined,
+                    title: 'Expenses',
                     onTap: () {},
                   ),
                 ],
