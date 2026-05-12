@@ -88,11 +88,16 @@ void _addToCart(InventoryItem item) {
          _cart.add(CartItem(item: item));
        }
      });
-if (_bottomSheetSetState != null) _bottomSheetSetState!(() {});
-      _showCartBottomSheet();
-    }
+     if (_bottomSheetSetState != null) {
+       try {
+         _bottomSheetSetState!(() {});
+       } catch (_) {}
+     } else {
+       _showCartBottomSheet();
+     }
+   }
 
-void _removeFromCart(String itemId) {
+   void _removeFromCart(String itemId) {
      setState(() {
        if (itemId == 'all') {
          _cart.clear();
@@ -100,18 +105,22 @@ void _removeFromCart(String itemId) {
          _cart.removeWhere((c) => c.item.id == itemId);
        }
      });
-if (_bottomSheetSetState != null) _bottomSheetSetState!(() {});
-    }
+     try {
+       if (_bottomSheetSetState != null) _bottomSheetSetState!(() {});
+     } catch (_) {}
+   }
 
-    void _updateCartQuantity(String itemId, int delta) {
-      setState(() {
-        final cartItem = _cart.firstWhere((c) => c.item.id == itemId);
-        cartItem.quantity += delta;
-        if (cartItem.quantity <= 0) {
-          _cart.removeWhere((c) => c.item.id == itemId);
-        }
-      });
-      if (_bottomSheetSetState != null) _bottomSheetSetState!(() {});
+void _updateCartQuantity(String itemId, int delta) {
+     setState(() {
+       final cartItem = _cart.firstWhere((c) => c.item.id == itemId);
+       cartItem.quantity += delta;
+       if (cartItem.quantity <= 0) {
+         _cart.removeWhere((c) => c.item.id == itemId);
+       }
+     });
+     try {
+       if (_bottomSheetSetState != null) _bottomSheetSetState!(() {});
+     } catch (_) {}
    }
 
   double get _subtotal => _cart.fold(0.0, (sum, c) => sum + c.total);
@@ -215,13 +224,17 @@ void _showCartBottomSheet() {
        builder: (context) => StatefulBuilder(
 builder: (context, setSheetState) {
             _bottomSheetSetState = setSheetState;
-            return _CartBottomSheetContent(
-              cart: _cart,
-              onUpdateQuantity: _updateCartQuantity,
-              onRemove: _removeFromCart,
-              onCheckout: _checkout,
-              isProcessing: _isProcessing,
-            );
+return _CartBottomSheetContent(
+               cart: _cart,
+               onUpdateQuantity: _updateCartQuantity,
+               onRemove: _removeFromCart,
+               onCheckout: _checkout,
+               isProcessing: _isProcessing,
+               onClose: () {
+                 _bottomSheetSetState = null;
+                 Navigator.of(context).pop();
+               },
+             );
          },
        ),
      );
@@ -512,6 +525,7 @@ class _CartBottomSheetContent extends StatelessWidget {
    final Function(String) onRemove;
    final Future<void> Function() onCheckout;
    final bool isProcessing;
+   final VoidCallback onClose;
 
    const _CartBottomSheetContent({
      required this.cart,
@@ -519,6 +533,7 @@ class _CartBottomSheetContent extends StatelessWidget {
      required this.onRemove,
      required this.onCheckout,
      required this.isProcessing,
+     required this.onClose,
    });
 
    double get subtotal => cart.fold(0.0, (sum, c) => sum + c.total);
@@ -536,20 +551,23 @@ class _CartBottomSheetContent extends StatelessWidget {
          mainAxisSize: MainAxisSize.min,
          crossAxisAlignment: CrossAxisAlignment.start,
          children: [
-           // Header
-           Row(
-             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-             children: [
-               const Text(
-                 'Shopping Cart',
-                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-               ),
-               IconButton(
-                 icon: const Icon(Icons.close),
-                 onPressed: () => Navigator.of(context).pop(),
-               ),
-             ],
-           ),
+// Header
+            Container(
+              margin: const EdgeInsets.only(top: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Shopping Cart',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                  ),
+IconButton(
+                     icon: const Icon(Icons.close),
+                     onPressed: onClose,
+                   ),
+                ],
+              ),
+            ),
            const SizedBox(height: 12),
            // Cart items list
            Expanded(
