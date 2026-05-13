@@ -18,14 +18,7 @@ class _SalesPageState extends State<SalesPage> {
   }
 
   String _formatDateTime(DateTime dt) {
-    const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-    ];
-    final ampm = dt.hour >= 12 ? 'PM' : 'AM';
-    final hour = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
-    final min = dt.minute.toString().padLeft(2, '0');
-    return '${months[dt.month - 1]} ${dt.day}, ${dt.year}  $hour:$min $ampm';
+    return '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year.toString().substring(2)}';
   }
 
   @override
