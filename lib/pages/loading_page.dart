@@ -33,9 +33,11 @@ class _LoadingPageState extends State<LoadingPage>
 
     _controller.forward();
 
-    // Defer DB work until after first frame so animation renders smoothly
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _initData();
+    // Wait for animation to render, then fetch data
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (mounted) {
+        _initData();
+      }
     });
   }
 
