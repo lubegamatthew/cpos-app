@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../main.dart';
 import '../db_helper.dart';
+import '../sales_bus.dart';
 
 class PosPage extends StatefulWidget {
   const PosPage({super.key});
@@ -157,38 +158,41 @@ void _updateCartQuantity(String itemId, int delta) {
       });
 
       // Create order items and update inventory
-      for (final cartItem in _cart) {
-        final item = cartItem.item;
-        final newQty = item.quantity - cartItem.quantity;
+       for (final cartItem in _cart) {
+         final item = cartItem.item;
+         final newQty = item.quantity - cartItem.quantity;
 
-        await DatabaseHelper.instance.insertOrderItem({
-          'id': '${orderId}_${item.id}',
-          'orderId': orderId,
-          'inventoryId': item.id,
-          'itemName': item.name,
-          'quantity': cartItem.quantity,
-          'buyPrice': item.buyPrice,
-          'sellPrice': item.sellPrice,
-          'totalCost': item.buyPrice * cartItem.quantity,
-          'totalRevenue': item.sellPrice * cartItem.quantity,
-          'profit': (item.sellPrice - item.buyPrice) * cartItem.quantity,
-        });
+         await DatabaseHelper.instance.insertOrderItem({
+           'id': '${orderId}_${item.id}',
+           'orderId': orderId,
+           'inventoryId': item.id,
+           'itemName': item.name,
+           'quantity': cartItem.quantity,
+           'buyPrice': item.buyPrice,
+           'sellPrice': item.sellPrice,
+           'totalCost': item.buyPrice * cartItem.quantity,
+           'totalRevenue': item.sellPrice * cartItem.quantity,
+           'profit': (item.sellPrice - item.buyPrice) * cartItem.quantity,
+         });
 
-        // Update inventory
-        await DatabaseHelper.instance.updateItem({
-          'id': item.id,
-          'name': item.name,
-          'category': item.category,
-          'quantity': newQty,
-          'buyPrice': item.buyPrice,
-          'sellPrice': item.sellPrice,
-          'unit': item.unit,
-          'description': item.description,
-          'createdAt': item.createdAt.toIso8601String(),
-        });
-      }
+         // Update inventory
+         await DatabaseHelper.instance.updateItem({
+           'id': item.id,
+           'name': item.name,
+           'category': item.category,
+           'quantity': newQty,
+           'buyPrice': item.buyPrice,
+           'sellPrice': item.sellPrice,
+           'unit': item.unit,
+           'description': item.description,
+           'createdAt': item.createdAt.toIso8601String(),
+         });
+       }
 
-      _cart.clear();
+       // Notify that sales data has changed
+       SalesBus().notifySalesUpdated();
+
+       _cart.clear();
       _customerNameController.text = 'Walk-in Customer';
       _customerPhoneController.clear();
       _notesController.clear();

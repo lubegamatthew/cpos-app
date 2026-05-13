@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../db_helper.dart';
+import '../sales_bus.dart';
 
 class SalesPage extends StatefulWidget {
   const SalesPage({super.key});
@@ -10,6 +11,27 @@ class SalesPage extends StatefulWidget {
 
 class _SalesPageState extends State<SalesPage> {
   final Set<int> _expandedPanels = {};
+  final SalesBus _salesBus = SalesBus();
+
+  @override
+  void initState() {
+    super.initState();
+    _salesBus.addListener(_onSalesUpdated);
+  }
+
+  @override
+  void dispose() {
+    _salesBus.removeListener(_onSalesUpdated);
+    super.dispose();
+  }
+
+  void _onSalesUpdated() {
+    if (mounted) {
+      setState(() {
+        // Trigger rebuild by forcing a state update
+      });
+    }
+  }
 
   String _formatCurrency(double value) {
     return 'UGX ${value.toStringAsFixed(0).replaceAllMapped(
