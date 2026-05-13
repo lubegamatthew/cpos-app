@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../db_helper.dart';
+import '../main.dart';
 
 class SalesPage extends StatefulWidget {
   const SalesPage({super.key});
@@ -9,26 +10,7 @@ class SalesPage extends StatefulWidget {
 }
 
 class _SalesPageState extends State<SalesPage> {
-  List<Map<String, dynamic>> _sales = [];
-  bool _isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadSales();
-  }
-
-  Future<void> _loadSales() async {
-    final sales = await DatabaseHelper.instance.getSalesWithItems();
-    if (mounted) {
-      setState(() {
-        _sales = sales;
-        _isLoading = false;
-      });
-    }
-  }
-
-String _formatCurrency(double value) {
+  String _formatCurrency(double value) {
     return 'UGX ${value.toStringAsFixed(0).replaceAllMapped(
         RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}';
   }
@@ -57,8 +39,11 @@ String _formatCurrency(double value) {
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
       ),
-      body: _isLoading
-          ? const Center(
+      body: FutureBuilder<List<Map<String, dynamic>>>(
+        future: DatabaseHelper.instance.getSalesWithItems(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -67,173 +52,174 @@ String _formatCurrency(double value) {
                   Text('Loading sales data...'),
                 ],
               ),
-            )
-          : _sales.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.receipt_long_outlined,
-                        size: 64,
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onSurface
-                            .withValues(alpha: 0.2),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'No sales recorded yet',
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Sales will appear here once checkout is completed',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurfaceVariant,
-                            ),
-                      ),
-                    ],
+            );
+          }
+
+          if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.receipt_long_outlined,
+                    size: 64,
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.2),
                   ),
-                )
-              : SingleChildScrollView(
-                  padding: const EdgeInsets.all(16),
+                  const SizedBox(height: 16),
+                  Text(
+                    'No sales recorded yet',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Sales will appear here once checkout is completed',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          final sales = snapshot.data!;
+
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildSummaryCards(sales),
+                const SizedBox(height: 20),
+                Card(
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Summary cards
-                      _buildSummaryCards(),
-                      const SizedBox(height: 20),
-                      // Sales table
-                      Card(
-                        elevation: 2,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          color:
+                              Theme.of(context).colorScheme.primaryContainer,
+                          borderRadius:
+                              const BorderRadius.vertical(top: Radius.circular(12)),
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        child: Row(
                           children: [
-                            // Table header
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 12),
-                              decoration: BoxDecoration(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .primaryContainer,
-                                borderRadius: const BorderRadius.vertical(
-                                    top: Radius.circular(12)),
-                              ),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    flex: 2,
-                                    child: Text(
-                                      'Order ID',
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w700,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSurfaceVariant,
-                                      ),
-                                    ),
-                                  ),
-                                  Expanded(
-                                    flex: 3,
-                                    child: Text(
-                                      'Date & Time',
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w700,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSurfaceVariant,
-                                      ),
-                                    ),
-                                  ),
-                                  Expanded(
-                                    flex: 2,
-                                    child: Text(
-                                      'Customer',
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w700,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSurfaceVariant,
-                                      ),
-                                    ),
-                                  ),
-                                  Expanded(
-                                    flex: 2,
-                                    child: Text(
-                                      'Items',
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w700,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSurfaceVariant,
-                                      ),
-                                      textAlign: TextAlign.center,
-                                    ),
-                                  ),
-                                  Expanded(
-                                    flex: 2,
-                                    child: Text(
-                                      'Total',
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w700,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSurfaceVariant,
-                                      ),
-                                      textAlign: TextAlign.right,
-                                    ),
-                                  ),
-                                ],
+                            Expanded(
+                              flex: 2,
+                              child: Text(
+                                'Order ID',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant,
+                                ),
                               ),
                             ),
-                            // Table rows
-                            ..._sales.asMap().entries.map((entry) {
-                              final index = entry.key;
-                              final sale = entry.value;
-                              final order =
-                                  sale['order'] as Map<String, dynamic>;
-                              final items =
-                                  sale['items'] as List<Map<String, dynamic>>;
-                              final isLast = index == _sales.length - 1;
-                              return _buildSalesRow(
-                                order: order,
-                                items: items,
-                                isLast: isLast,
-                              );
-                            }),
+                            Expanded(
+                              flex: 3,
+                              child: Text(
+                                'Date & Time',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant,
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              flex: 2,
+                              child: Text(
+                                'Customer',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant,
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              flex: 2,
+                              child: Text(
+                                'Items',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                            Expanded(
+                              flex: 2,
+                              child: Text(
+                                'Total',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant,
+                                ),
+                                textAlign: TextAlign.right,
+                              ),
+                            ),
                           ],
                         ),
                       ),
+                      ...sales.asMap().entries.map((entry) {
+                        final index = entry.key;
+                        final sale = entry.value;
+                        final order =
+                            sale['order'] as Map<String, dynamic>;
+                        final items =
+                            sale['items'] as List<Map<String, dynamic>>;
+                        final isLast = index == sales.length - 1;
+                        return _buildSalesRow(
+                          order: order,
+                          items: items,
+                          isLast: isLast,
+                        );
+                      }),
                     ],
                   ),
                 ),
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 
-  Widget _buildSummaryCards() {
-    final totalSales = _sales.fold<double>(
+  Widget _buildSummaryCards(List<Map<String, dynamic>> sales) {
+    final totalSales = sales.fold<double>(
       0,
       (sum, s) =>
           sum + ((s['order'] as Map<String, dynamic>)['totalAmount'] as double),
     );
-    final totalProfit = _sales.fold<double>(
+    final totalProfit = sales.fold<double>(
       0,
       (sum, s) =>
           sum + ((s['order'] as Map<String, dynamic>)['totalProfit'] as double),
     );
-    final totalItems = _sales.fold<int>(
+    final totalItems = sales.fold<int>(
       0,
       (sum, s) {
         final items = s['items'] as List<Map<String, dynamic>>;
@@ -288,14 +274,8 @@ String _formatCurrency(double value) {
     final createdAt = order['createdAt'] as String;
 
     final dateTime = DateTime.tryParse(createdAt);
-    final formattedDate = dateTime != null
-        ? _formatDateTime(dateTime)
-        : createdAt;
-
-    final itemNames = items
-        .map((i) =>
-            '${i['itemName']} x${i['quantity']}')
-        .join(', ');
+    final formattedDate =
+        dateTime != null ? _formatDateTime(dateTime) : createdAt;
 
     return Column(
       children: [
@@ -353,7 +333,8 @@ String _formatCurrency(double value) {
             ],
           ),
         ),
-        if (!isLast) const Divider(height: 1, indent: 16, endIndent: 16),
+        if (!isLast)
+          const Divider(height: 1, indent: 16, endIndent: 16),
       ],
     );
   }
