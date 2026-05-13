@@ -54,11 +54,11 @@ class MyApp extends StatelessWidget {
           ),
         ),
         textTheme: GoogleFonts.poppinsTextTheme(),
-navigationBarTheme: NavigationBarThemeData(
-            labelTextStyle: WidgetStatePropertyAll(
-              const TextStyle(fontSize: 11),
-            ),
+        navigationBarTheme: NavigationBarThemeData(
+          labelTextStyle: WidgetStatePropertyAll(
+            const TextStyle(fontSize: 10),
           ),
+        ),
       ),
       initialRoute: '/loading',
       routes: {
