@@ -7,6 +7,8 @@ import 'pages/inventory_page.dart';
 import 'pages/loading_page.dart';
 import 'pages/pos_page.dart';
 import 'pages/sales_page.dart';
+import 'db_helper.dart';
+import 'sales_bus.dart';
 
 void main() {
   runZonedGuarded(() {
@@ -74,20 +76,6 @@ class POSDashboard extends StatefulWidget {
 
   @override
   State<POSDashboard> createState() => _POSDashboardState();
-}
-
-class Order {
-  final String id;
-  final String customer;
-  final double amount;
-  final String status;
-
-  Order({
-    required this.id,
-    required this.customer,
-    required this.amount,
-    required this.status,
-  });
 }
 
 class InventoryItem {
@@ -304,14 +292,94 @@ class _POSDashboardState extends State<POSDashboard> {
   int _selectedIndex = 0;
   bool _sidebarOpen = false;
   bool _financialReportsExpanded = false;
+  List<Map<String, dynamic>> _recentOrders = [];
+  Map<String, dynamic> _stats = {
+    'todaySales': 0.0,
+    'todayOrders': 0,
+    'itemsSold': 0,
+    'lowStock': 0,
+    'weeklyProfit': 0.0,
+  };
+  final SalesBus _salesBus = SalesBus();
 
-  final List<Order> _recentOrders = [
-    Order(id: '#1001', customer: 'John Smith', amount: 125000, status: 'Completed'),
-    Order(id: '#1002', customer: 'Sarah Johnson', amount: 285000, status: 'Completed'),
-    Order(id: '#1003', customer: 'Mike Wilson', amount: 45000, status: 'Pending'),
-    Order(id: '#1004', customer: 'Emma Davis', amount: 187500, status: 'Completed'),
-    Order(id: '#1005', customer: 'Alex Brown', amount: 68000, status: 'Completed'),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _salesBus.addListener(_onSalesUpdated);
+    _loadDashboardData();
+  }
+
+  @override
+  void dispose() {
+    _salesBus.removeListener(_onSalesUpdated);
+    super.dispose();
+  }
+
+  void _onSalesUpdated() {
+    _loadDashboardData();
+  }
+
+  Future<void> _loadDashboardData() async {
+    final orders = await DatabaseHelper.instance.getAllOrders();
+    final inventory = await DatabaseHelper.instance.getAllInventoryItems();
+    
+    final now = DateTime.now();
+    final todayStart = DateTime(now.year, now.month, now.day);
+    final weekStart = now.subtract(Duration(days: now.weekday - 1));
+    final weekStartDate = DateTime(weekStart.year, weekStart.month, weekStart.day);
+    
+    // Today's stats
+    double todaySales = 0;
+    int todayOrders = 0;
+    int itemsSold = 0;
+    
+    for (final order in orders) {
+      final createdAt = DateTime.tryParse(order['createdAt'] ?? '');
+      if (createdAt != null && createdAt.isAfter(todayStart)) {
+        todaySales += (order['totalAmount'] as double);
+        todayOrders += 1;
+      }
+    }
+    
+    // Calculate items sold today
+    for (final order in orders) {
+      final createdAt = DateTime.tryParse(order['createdAt'] ?? '');
+      if (createdAt != null && createdAt.isAfter(todayStart)) {
+        final items = await DatabaseHelper.instance.getOrderItems(order['id']);
+        for (final item in items) {
+          itemsSold += (item['quantity'] as int);
+        }
+      }
+    }
+    
+    // Low stock count (quantity < 10)
+    final lowStock = inventory.where((item) => (item['quantity'] as int) < 10).length;
+    
+    // Weekly profit
+    double weeklyProfit = 0;
+    for (final order in orders) {
+      final createdAt = DateTime.tryParse(order['createdAt'] ?? '');
+      if (createdAt != null && createdAt.isAfter(weekStartDate)) {
+        weeklyProfit += (order['totalProfit'] as double);
+      }
+    }
+    
+    // Recent orders (most recent 5)
+    final recentOrders = orders.take(5).toList();
+    
+    if (!mounted) return;
+    
+    setState(() {
+      _recentOrders = recentOrders;
+      _stats = {
+        'todaySales': todaySales,
+        'todayOrders': todayOrders,
+        'itemsSold': itemsSold,
+        'lowStock': lowStock,
+        'weeklyProfit': weeklyProfit,
+      };
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -408,98 +476,6 @@ destinations: const [
                ],
             )
           : null,
-    );
-  }
-
-  Widget _buildHeaderStats() {
-    return GridView.count(
-      crossAxisCount: 2,
-      crossAxisSpacing: 12,
-      mainAxisSpacing: 12,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      childAspectRatio: 1.3,
-      children: [
-        _StatCard(
-          title: 'Today\'s Revenue',
-          value: 'UGX 4.6M',
-          icon: Icons.attach_money,
-          color: Colors.green,
-        ),
-        _StatCard(
-          title: 'Total Orders',
-          value: '24',
-          icon: Icons.shopping_cart_outlined,
-          color: Colors.blue,
-        ),
-        _StatCard(
-          title: 'Customers',
-          value: '18',
-          icon: Icons.people_outline,
-          color: Colors.orange,
-        ),
-        _StatCard(
-          title: 'Low Stock',
-          value: '3',
-          icon: Icons.inventory_2_outlined,
-          color: Colors.red,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSectionHeader(String title, {VoidCallback? onViewAll}) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          title,
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-        ),
-        if (onViewAll != null)
-          TextButton(onPressed: onViewAll, child: const Text('View All')),
-      ],
-    );
-  }
-
-  Widget _buildRecentOrders() {
-    return Card(
-      child: ListView.separated(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: _recentOrders.length,
-        separatorBuilder: (context, index) => const Divider(height: 1, indent: 16, endIndent: 16),
-        itemBuilder: (context, index) {
-          final order = _recentOrders[index];
-          return ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            leading: CircleAvatar(
-              backgroundColor: _getStatusColor(order.status).withValues(alpha: 0.1),
-              child: Icon(
-                Icons.receipt_outlined,
-                color: _getStatusColor(order.status),
-              ),
-            ),
-            title: Text(
-              '${order.id} - ${order.customer}',
-              style: const TextStyle(fontWeight: FontWeight.w500),
-            ),
-            subtitle: Text(
-              order.status,
-              style: TextStyle(
-                color: _getStatusColor(order.status),
-                fontSize: 12,
-              ),
-            ),
-            trailing: Text(
-              'UGX ${order.amount.toStringAsFixed(0)}',
-              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
-            ),
-          );
-        },
-      ),
     );
   }
 
@@ -775,31 +751,31 @@ _SidebarItem(
             children: [
               _StatCard(
                 title: 'Today\'s Sales',
-                value: 'UGX 4.6M',
+                value: 'UGX ${(_stats['todaySales'] as double).toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}',
                 icon: Icons.attach_money,
                 color: Colors.green,
-                subtitle: '24 orders',
+                subtitle: '${_stats['todayOrders']} sale(s)',
               ),
               _StatCard(
                 title: 'Items Sold',
-                value: '142',
+                value: '${_stats['itemsSold']}',
                 icon: Icons.shopping_bag_outlined,
                 color: Colors.blue,
                 subtitle: 'Today',
               ),
               _StatCard(
                 title: 'Low Stock',
-                value: '3',
+                value: '${_stats['lowStock']}',
                 icon: Icons.inventory_2_outlined,
                 color: Colors.orange,
                 subtitle: 'Items below threshold',
               ),
               _StatCard(
                 title: 'Weekly Profit',
-                value: 'UGX 1.2M',
+                value: 'UGX ${(_stats['weeklyProfit'] as double).toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}',
                 icon: Icons.trending_up,
                 color: Colors.purple,
-                subtitle: 'From 24 orders',
+                subtitle: 'This week',
               ),
             ],
           ),
@@ -827,41 +803,59 @@ _SidebarItem(
           ),
           const SizedBox(height: 8),
           Card(
-            child: ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: _recentOrders.length,
-              separatorBuilder: (context, index) => const Divider(height: 1, indent: 16, endIndent: 16),
-              itemBuilder: (context, index) {
-                final order = _recentOrders[index];
-                return ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  leading: CircleAvatar(
-                    backgroundColor: _getStatusColor(order.status).withValues(alpha: 0.1),
-                    child: Icon(
-                      Icons.receipt_outlined,
-                      color: _getStatusColor(order.status),
-                      size: 20,
+            child: _recentOrders.isEmpty
+                ? const Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Center(
+                      child: Text(
+                        'No recent sales',
+                        style: TextStyle(
+                          color: Colors.grey,
+                          fontSize: 13,
+                        ),
+                      ),
                     ),
+                  )
+                : ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: _recentOrders.length,
+                    separatorBuilder: (context, index) => const Divider(height: 1, indent: 16, endIndent: 16),
+                    itemBuilder: (context, index) {
+                      final order = _recentOrders[index];
+                      final createdAt = DateTime.tryParse(order['createdAt'] ?? '');
+                      final formattedDate = createdAt != null
+                          ? '${createdAt.day.toString().padLeft(2, '0')}/${createdAt.month.toString().padLeft(2, '0')}/${createdAt.year.toString().substring(2)}'
+                          : 'N/A';
+                      
+                      return ListTile(
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        leading: CircleAvatar(
+                          backgroundColor: _getStatusColor(order['status'] ?? 'Completed').withValues(alpha: 0.1),
+                          child: Icon(
+                            Icons.receipt_outlined,
+                            color: _getStatusColor(order['status'] ?? 'Completed'),
+                            size: 20,
+                          ),
+                        ),
+                        title: Text(
+                          '${order['id']} - ${order['customerName']}',
+                          style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+                        ),
+                        subtitle: Text(
+                          formattedDate,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            fontSize: 11,
+                          ),
+                        ),
+                        trailing: Text(
+                          'UGX ${(order['totalAmount'] as double).toStringAsFixed(0)}',
+                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                        ),
+                      );
+                    },
                   ),
-                  title: Text(
-                    '${order.id} - ${order.customer}',
-                    style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
-                  ),
-                  subtitle: Text(
-                    order.status,
-                    style: TextStyle(
-                      color: _getStatusColor(order.status),
-                      fontSize: 11,
-                    ),
-                  ),
-                  trailing: Text(
-                    'UGX ${order.amount.toStringAsFixed(0)}',
-                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
-                  ),
-                );
-              },
-            ),
           ),
           const SizedBox(height: 80), // Space for bottom nav
         ],
@@ -964,56 +958,6 @@ class _StatCard extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
               ),
             ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _QuickActionCard extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-  final VoidCallback onTap;
-
-  const _QuickActionCard({
-    required this.icon,
-    required this.label,
-    required this.color,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 100,
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: color.withValues(alpha: 0.2),
-            width: 1,
-          ),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: color, size: 28),
-            const SizedBox(height: 6),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: color,
-              ),
-              textAlign: TextAlign.center,
-              maxLines: 1,
-            ),
           ],
         ),
       ),
