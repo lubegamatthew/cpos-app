@@ -33,26 +33,29 @@ class _LoadingPageState extends State<LoadingPage>
 
     _controller.forward();
 
-    // Wait for animation to render, then fetch data
-    Future.delayed(const Duration(milliseconds: 500), () {
-      if (mounted) {
-        _initData();
-      }
-    });
+    // Load data during animation (but don't store it since we're not using it)
+    _loadInitialData();
   }
 
-  Future<void> _initData() async {
-    await DatabaseHelper.instance.getAllInventoryItems();
-    await DatabaseHelper.instance.getAllOrders();
-    await DatabaseHelper.instance.getSalesWithItems();
-
-    if (mounted) {
-      Navigator.pushNamedAndRemoveUntil(
-        context,
-        '/dashboard',
-        (route) => false,
-      );
+  Future<void> _loadInitialData() async {
+    try {
+      // Load data to ensure database is initialized and ready
+      await DatabaseHelper.instance.getAllInventoryItems();
+      await DatabaseHelper.instance.getSalesWithItems();
+    } catch (e) {
+      // If there's an error, continue anyway - the app will still work
     }
+    
+    // Navigate to dashboard after a short delay (just for animation)
+    Future.delayed(const Duration(milliseconds: 1000), () {
+      if (mounted) {
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          '/dashboard',
+          (route) => false,
+        );
+      }
+    });
   }
 
   @override
