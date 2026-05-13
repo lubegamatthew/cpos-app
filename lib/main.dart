@@ -292,7 +292,9 @@ class _POSDashboardState extends State<POSDashboard> {
   int _selectedIndex = 0;
   bool _sidebarOpen = false;
   bool _financialReportsExpanded = false;
+  bool _lowStockExpanded = false;
   List<Map<String, dynamic>> _recentOrders = [];
+  List<Map<String, dynamic>> _lowStockItems = [];
   Map<String, dynamic> _stats = {
     'todaySales': 0.0,
     'todayOrders': 0,
@@ -352,8 +354,8 @@ class _POSDashboardState extends State<POSDashboard> {
       }
     }
     
-    // Low stock count (quantity < 10)
-    final lowStock = inventory.where((item) => (item['quantity'] as int) < 10).length;
+    // Low stock items (quantity < 10)
+    final lowStockItems = inventory.where((item) => (item['quantity'] as int) < 10).toList();
     
     // Weekly profit
     double weeklyProfit = 0;
@@ -371,11 +373,12 @@ class _POSDashboardState extends State<POSDashboard> {
     
     setState(() {
       _recentOrders = recentOrders;
+      _lowStockItems = lowStockItems;
       _stats = {
         'todaySales': todaySales,
         'todayOrders': todayOrders,
         'itemsSold': itemsSold,
-        'lowStock': lowStock,
+        'lowStock': lowStockItems.length,
         'weeklyProfit': weeklyProfit,
       };
     });
@@ -656,24 +659,66 @@ _SidebarItem(
                     onTap: () {},
                   ),
                 ],
+                 _SidebarItem(
+                   icon: Icons.category_outlined,
+                   title: 'Categories',
+                   selected: false,
+                   onTap: () {},
+                 ),
+                 _SidebarItem(
+                   icon: Icons.payment_outlined,
+                   title: 'Payments',
+                   selected: false,
+                   onTap: () {},
+                 ),
                 _SidebarItem(
-                  icon: Icons.category_outlined,
-                  title: 'Categories',
-                  selected: false,
-                  onTap: () {},
+                  icon: Icons.inventory_2_outlined,
+                  title: 'Low Stock',
+                  selected: _lowStockExpanded,
+                  onTap: () {
+                    print('Low Stock tapped! Expanded: $_lowStockExpanded');
+                    setState(() {
+                      _lowStockExpanded = !_lowStockExpanded;
+                      print('New expanded state: $_lowStockExpanded');
+                    });
+                  },
+                  trailing: _lowStockItems.isNotEmpty
+                      ? Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: Colors.red,
+                            shape: BoxShape.circle,
+                          ),
+                          constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
+                          child: Text(
+                            '${_lowStockItems.length}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        )
+                      : null,
                 ),
-                _SidebarItem(
-                  icon: Icons.payment_outlined,
-                  title: 'Payments',
-                  selected: false,
-                  onTap: () {},
-                ),
-                _SidebarItem(
-                  icon: Icons.settings_outlined,
-                  title: 'Settings',
-                  selected: false,
-                  onTap: () {},
-                ),
+                  if (_lowStockExpanded) ...[
+                    ..._lowStockItems.map((item) {
+                      final quantity = item['quantity'] as int;
+                      final isCritical = quantity <= 5;
+                      return _SidebarSubItem(
+                        icon: isCritical ? Icons.error_outline : Icons.warning_amber_outlined,
+                        title: '${item['name']} (${quantity} left)',
+                        onTap: () {},
+                      );
+                    }),
+                  ],
+                 _SidebarItem(
+                   icon: Icons.settings_outlined,
+                   title: 'Settings',
+                   selected: false,
+                   onTap: () {},
+                 ),
               ],
             ),
           ),
