@@ -182,13 +182,35 @@ class DatabaseHelper {
     );
   }
 
-  Future<List<Map<String, dynamic>>> getAllOrders() async {
-    final db = await database;
-    return await db.query(
-      'orders',
-      orderBy: 'createdAt DESC',
-    );
-  }
+Future<List<Map<String, dynamic>>> getAllOrders() async {
+     final db = await database;
+     return await db.query(
+       'orders',
+       orderBy: 'createdAt DESC',
+     );
+   }
+
+   Future<List<Map<String, dynamic>>> getSalesWithItems() async {
+     final db = await database;
+     final orders = await db.query(
+       'orders',
+       orderBy: 'createdAt DESC',
+     );
+
+     final List<Map<String, dynamic>> sales = [];
+     for (final order in orders) {
+       final items = await db.query(
+         'order_items',
+         where: 'orderId = ?',
+         whereArgs: [order['id']],
+       );
+       sales.add({
+         'order': order,
+         'items': items,
+       });
+     }
+     return sales;
+   }
 
   Future<Map<String, dynamic>?> getOrder(String id) async {
     final db = await database;

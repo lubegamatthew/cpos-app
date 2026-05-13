@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'pages/inventory_page.dart';
 import 'pages/pos_page.dart';
+import 'pages/sales_page.dart';
 
 void main() {
   runZonedGuarded(() {
@@ -342,13 +343,14 @@ class _POSDashboardState extends State<POSDashboard> {
         children: [
           IndexedStack(
             index: _selectedIndex,
-            children: [
-              _buildDashboardBody(),
-              _buildPosBody(),
-              _buildInventoryBody(),
-              _buildReportsBody(),
-              _buildExpensesBody(),
-            ],
+children: [
+                  _buildDashboardBody(),
+                  _buildPosBody(),
+                  _buildInventoryBody(),
+                  _buildSalesBody(),
+                  _buildReportsBody(),
+                  _buildExpensesBody(),
+                ],
           ),
           if (_sidebarOpen)
             GestureDetector(
@@ -374,28 +376,32 @@ class _POSDashboardState extends State<POSDashboard> {
                   _selectedIndex = index;
                 });
               },
-              destinations: const [
-                NavigationDestination(
-                  icon: Icon(Icons.dashboard_outlined),
-                  label: 'Dashboard',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.point_of_sale_outlined),
-                  label: 'POS',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.inventory_outlined),
-                  label: 'Inventory',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.bar_chart_outlined),
-                  label: 'Reports',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.money_outlined),
-                  label: 'Expenses',
-                ),
-              ],
+destinations: const [
+                 NavigationDestination(
+                   icon: Icon(Icons.dashboard_outlined),
+                   label: 'Dashboard',
+                 ),
+                 NavigationDestination(
+                   icon: Icon(Icons.point_of_sale_outlined),
+                   label: 'POS',
+                 ),
+                 NavigationDestination(
+                   icon: Icon(Icons.inventory_outlined),
+                   label: 'Inventory',
+                 ),
+                 NavigationDestination(
+                   icon: Icon(Icons.receipt_long_outlined),
+                   label: 'Sales',
+                 ),
+                 NavigationDestination(
+                   icon: Icon(Icons.bar_chart_outlined),
+                   label: 'Reports',
+                 ),
+                 NavigationDestination(
+                   icon: Icon(Icons.money_outlined),
+                   label: 'Expenses',
+                 ),
+               ],
             )
           : null,
     );
@@ -764,12 +770,18 @@ class _POSDashboardState extends State<POSDashboard> {
                   selected: _selectedIndex == 1,
                   onTap: () => _selectNavItem(1),
                 ),
-                _SidebarItem(
-                  icon: Icons.inventory_outlined,
-                  title: 'Inventory',
-                  selected: _selectedIndex == 2,
-                  onTap: () => _selectNavItem(2),
-                ),
+_SidebarItem(
+                   icon: Icons.inventory_outlined,
+                   title: 'Inventory',
+                   selected: _selectedIndex == 2,
+                   onTap: () => _selectNavItem(2),
+                 ),
+                 _SidebarItem(
+                   icon: Icons.receipt_long_outlined,
+                   title: 'Sales',
+                   selected: _selectedIndex == 3,
+                   onTap: () => _selectNavItem(3),
+                 ),
                 _SidebarItem(
                   icon: Icons.attach_money_outlined,
                   title: 'Expenses',
@@ -913,9 +925,13 @@ class _POSDashboardState extends State<POSDashboard> {
     return const PosPage();
   }
 
-  Widget _buildInventoryBody() {
-    return const InventoryPage();
-  }
+Widget _buildInventoryBody() {
+     return const InventoryPage();
+   }
+
+   Widget _buildSalesBody() {
+     return const SalesPage();
+   }
 
   Widget _buildReportsBody() {
     return const Center(
