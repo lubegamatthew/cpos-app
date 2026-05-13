@@ -190,27 +190,57 @@ Future<List<Map<String, dynamic>>> getAllOrders() async {
      );
    }
 
-   Future<List<Map<String, dynamic>>> getSalesWithItems() async {
-     final db = await database;
-     final orders = await db.query(
-       'orders',
-       orderBy: 'createdAt DESC',
-     );
+   Future<List<Map<String, dynamic>>> getSalesWithItems({String? filter}) async {
+      final db = await database;
+      String whereClause = '';
+      List<dynamic> whereArgs = [];
 
-     final List<Map<String, dynamic>> sales = [];
-     for (final order in orders) {
-       final items = await db.query(
-         'order_items',
-         where: 'orderId = ?',
-         whereArgs: [order['id']],
-       );
-       sales.add({
-         'order': order,
-         'items': items,
-       });
-     }
-     return sales;
-   }
+      if (filter != null) {
+        final now = DateTime.now();
+        DateTime startDate;
+
+        switch (filter) {
+          case 'today':
+            startDate = DateTime(now.year, now.month, now.day);
+            break;
+          case 'week':
+            startDate = now.subtract(Duration(days: now.weekday - 1));
+            startDate = DateTime(startDate.year, startDate.month, startDate.day);
+            break;
+          case 'month':
+            startDate = DateTime(now.year, now.month, 1);
+            break;
+          default:
+            startDate = DateTime(1970);
+        }
+
+        if (filter != 'all') {
+          whereClause = 'createdAt >= ?';
+          whereArgs.add(startDate.toIso8601String());
+        }
+      }
+
+      final orders = await db.query(
+        'orders',
+        where: whereClause.isEmpty ? null : whereClause,
+        whereArgs: whereArgs.isEmpty ? null : whereArgs,
+        orderBy: 'createdAt DESC',
+      );
+
+      final List<Map<String, dynamic>> sales = [];
+      for (final order in orders) {
+        final items = await db.query(
+          'order_items',
+          where: 'orderId = ?',
+          whereArgs: [order['id']],
+        );
+        sales.add({
+          'order': order,
+          'items': items,
+        });
+      }
+      return sales;
+    }
 
   Future<Map<String, dynamic>?> getOrder(String id) async {
     final db = await database;

@@ -12,6 +12,7 @@ class SalesPage extends StatefulWidget {
 class _SalesPageState extends State<SalesPage> {
   final Set<int> _expandedPanels = {};
   final SalesBus _salesBus = SalesBus();
+  String _selectedFilter = 'all';
 
   @override
   void initState() {
@@ -42,6 +43,40 @@ class _SalesPageState extends State<SalesPage> {
     return '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year.toString().substring(2)}';
   }
 
+  Widget _buildFilterChips() {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: [
+          _FilterChip(
+            label: 'All',
+            isSelected: _selectedFilter == 'all',
+            onSelected: () => setState(() => _selectedFilter = 'all'),
+          ),
+          const SizedBox(width: 8),
+          _FilterChip(
+            label: 'Today',
+            isSelected: _selectedFilter == 'today',
+            onSelected: () => setState(() => _selectedFilter = 'today'),
+          ),
+          const SizedBox(width: 8),
+          _FilterChip(
+            label: 'This Week',
+            isSelected: _selectedFilter == 'week',
+            onSelected: () => setState(() => _selectedFilter = 'week'),
+          ),
+          const SizedBox(width: 8),
+          _FilterChip(
+            label: 'This Month',
+            isSelected: _selectedFilter == 'month',
+            onSelected: () => setState(() => _selectedFilter = 'month'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -56,7 +91,7 @@ class _SalesPageState extends State<SalesPage> {
         ),
       ),
       body: FutureBuilder<List<Map<String, dynamic>>>(
-        future: DatabaseHelper.instance.getSalesWithItems(),
+        future: DatabaseHelper.instance.getSalesWithItems(filter: _selectedFilter == 'all' ? null : _selectedFilter),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
@@ -136,6 +171,8 @@ class _SalesPageState extends State<SalesPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                _buildFilterChips(),
+                const SizedBox(height: 16),
                 // Expandable summary cards
                 Card(
                   elevation: 2,
@@ -219,6 +256,32 @@ class _SalesPageState extends State<SalesPage> {
     );
   }
 
+  Widget _FilterChip({
+    required String label,
+    required bool isSelected,
+    required VoidCallback onSelected,
+  }) {
+    return InkWell(
+      onTap: onSelected,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF1E3A5F) : Colors.grey.shade200,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+            color: isSelected ? Colors.white : Colors.black87,
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildExpansionTile({
     required String title,
     required String value,
@@ -292,7 +355,7 @@ class _SalesPageState extends State<SalesPage> {
           style: TextStyle(fontSize: 11, color: Colors.grey),
         ),
         const SizedBox(height: 8),
-...sales.take(10).map((sale) {
+        ...sales.take(10).map((sale) {
            final order = sale['order'] as Map<String, dynamic>;
            return Padding(
             padding: const EdgeInsets.symmetric(vertical: 4),
@@ -506,7 +569,6 @@ class _SalesPageState extends State<SalesPage> {
       children: [
         InkWell(
           onTap: () {
-            // Show order detail dialog
             showDialog(
               context: context,
               builder: (ctx) {
