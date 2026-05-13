@@ -426,7 +426,7 @@ class _SalesPageState extends State<SalesPage> {
           Expanded(
             flex: 2,
             child: Text(
-              'Order ID',
+              'Sale ID',
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
@@ -557,15 +557,17 @@ class _SalesPageState extends State<SalesPage> {
             child: Row(
               children: [
                 Expanded(
-                  flex: 2,
+                  flex: 1,
                   child: Text(
-                    orderId.length > 12
-                        ? orderId.substring(0, 12)
+                    orderId.length > 8
+                        ? orderId.substring(0, 8)
                         : orderId,
                     style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
                     ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
                   ),
                 ),
                 Expanded(
