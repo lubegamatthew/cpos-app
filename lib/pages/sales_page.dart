@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../db_helper.dart';
-import '../main.dart';
 
 class SalesPage extends StatefulWidget {
   const SalesPage({super.key});
@@ -271,10 +270,9 @@ class _SalesPageState extends State<SalesPage> {
           style: TextStyle(fontSize: 11, color: Colors.grey),
         ),
         const SizedBox(height: 8),
-        ...sales.take(10).map((sale) {
-          final order = sale['order'] as Map<String, dynamic>;
-          final items = sale['items'] as List<Map<String, dynamic>>;
-          return Padding(
+...sales.take(10).map((sale) {
+           final order = sale['order'] as Map<String, dynamic>;
+           return Padding(
             padding: const EdgeInsets.symmetric(vertical: 4),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,

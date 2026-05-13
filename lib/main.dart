@@ -4,6 +4,7 @@ import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'pages/inventory_page.dart';
+import 'pages/loading_page.dart';
 import 'pages/pos_page.dart';
 import 'pages/sales_page.dart';
 
@@ -35,7 +36,7 @@ void main() {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  @override
+@override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'CPOS - Point of Sale',
@@ -53,13 +54,17 @@ class MyApp extends StatelessWidget {
           ),
         ),
         textTheme: GoogleFonts.poppinsTextTheme(),
-        navigationBarTheme: const NavigationBarThemeData(
-          labelTextStyle: WidgetStatePropertyAll(
-            TextStyle(fontSize: 11),
+navigationBarTheme: NavigationBarThemeData(
+            labelTextStyle: WidgetStatePropertyAll(
+              const TextStyle(fontSize: 11),
+            ),
           ),
-        ),
       ),
-      home: const POSDashboard(),
+      initialRoute: '/loading',
+      routes: {
+        '/loading': (context) => const LoadingPage(),
+        '/dashboard': (context) => const POSDashboard(),
+      },
     );
   }
 }
