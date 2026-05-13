@@ -436,6 +436,7 @@ class _SalesPageState extends State<SalesPage> {
                 fontWeight: FontWeight.w700,
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
+              textAlign: TextAlign.center,
             ),
           ),
           Expanded(
@@ -488,61 +489,72 @@ class _SalesPageState extends State<SalesPage> {
             // Show order detail dialog
             showDialog(
               context: context,
-              builder: (ctx) => AlertDialog(
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16)),
-                title: Text('Order $orderId'),
-                content: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text('Customer: $customer'),
-                    Text('Date: $formattedDate'),
-                    const Divider(),
-                    ...items.map((item) => Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 4),
-                          child: Row(
-                            mainAxisAlignment:
-                                MainAxisAlignment.spaceBetween,
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  '${item['itemName']} x${item['quantity']}',
+              builder: (ctx) {
+                final saleTime = DateTime.tryParse(createdAt);
+                final formattedTime = saleTime != null
+                    ? '${saleTime.hour.toString().padLeft(2, '0')}:${saleTime.minute.toString().padLeft(2, '0')}:${saleTime.second.toString().padLeft(2, '0')}'
+                    : '';
+                return AlertDialog(
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16)),
+                  title: Text('Order $orderId'),
+                  content: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text('Customer: $customer'),
+                      Text('Date: $formattedDate'),
+                      if (formattedTime.isNotEmpty)
+                        Text('Time: $formattedTime'),
+                      const Divider(),
+                      ...items.map((item) => Padding(
+                            padding:
+                                const EdgeInsets.symmetric(vertical: 4),
+                            child: Row(
+                              mainAxisAlignment:
+                                  MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    '${item['itemName']} x${item['quantity']}',
+                                  ),
                                 ),
-                              ),
-                              Text(
-                                _formatCurrency(
-                                    item['totalRevenue'] as double),
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.w600),
-                              ),
-                            ],
+                                Text(
+                                  _formatCurrency(
+                                      item['totalRevenue'] as double),
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.w600),
+                                ),
+                              ],
+                            ),
+                          )),
+                      const Divider(),
+                      Row(
+                        mainAxisAlignment:
+                            MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Total:',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w600)),
+                          Text(
+                            _formatCurrency(totalAmount),
+                            style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.green),
                           ),
-                        )),
-                    const Divider(),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text('Total:',
-                            style: TextStyle(fontWeight: FontWeight.w600)),
-                        Text(
-                          _formatCurrency(totalAmount),
-                          style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.green),
-                        ),
-                      ],
+                        ],
+                      ),
+                    ],
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      child: const Text('Close'),
                     ),
                   ],
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(ctx),
-                    child: const Text('Close'),
-                  ),
-                ],
-              ),
+                );
+              },
             );
           },
           child: Container(
@@ -568,6 +580,7 @@ class _SalesPageState extends State<SalesPage> {
                   child: Text(
                     formattedDate,
                     style: const TextStyle(fontSize: 12),
+                    textAlign: TextAlign.center,
                   ),
                 ),
                 Expanded(
