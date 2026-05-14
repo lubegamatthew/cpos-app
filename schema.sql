@@ -18,9 +18,9 @@ CREATE TABLE inventory (
 );
 
 -- ============================================
--- Table: orders
+-- Table: sales
 -- ============================================
-CREATE TABLE orders (
+CREATE TABLE sales (
   id             TEXT PRIMARY KEY,
   customerName   TEXT DEFAULT 'Walk-in Customer',
   customerPhone  TEXT DEFAULT '',
@@ -33,11 +33,11 @@ CREATE TABLE orders (
 );
 
 -- ============================================
--- Table: order_items
+-- Table: sale_items
 -- ============================================
-CREATE TABLE order_items (
+CREATE TABLE sale_items (
   id           TEXT PRIMARY KEY,
-  orderId      TEXT NOT NULL,
+  saleId       TEXT NOT NULL,
   inventoryId  TEXT NOT NULL,
   itemName     TEXT NOT NULL,
   quantity     INTEGER NOT NULL,
@@ -46,6 +46,6 @@ CREATE TABLE order_items (
   totalCost    REAL NOT NULL,
   totalRevenue REAL NOT NULL,
   profit       REAL NOT NULL,
-  FOREIGN KEY (orderId) REFERENCES orders (id) ON DELETE CASCADE,
+  FOREIGN KEY (saleId) REFERENCES sales (id) ON DELETE CASCADE,
   FOREIGN KEY (inventoryId) REFERENCES inventory (id)
 );

@@ -138,13 +138,13 @@ void _updateCartQuantity(String itemId, int delta) {
     final totalProfit = _totalProfit;
     final itemCount = _itemCount;
 
-    try {
-      final orderId = DateTime.now().millisecondsSinceEpoch.toString();
+try {
+      final saleId = DateTime.now().millisecondsSinceEpoch.toString();
       final now = DateTime.now().toIso8601String();
 
-      // Create order
-      await DatabaseHelper.instance.insertOrder({
-        'id': orderId,
+      // Create sale
+      await DatabaseHelper.instance.insertSale({
+        'id': saleId,
         'customerName': _customerNameController.text.trim().isEmpty
             ? 'Walk-in Customer'
             : _customerNameController.text.trim(),
@@ -157,52 +157,52 @@ void _updateCartQuantity(String itemId, int delta) {
         'createdAt': now,
       });
 
-      // Create order items and update inventory
-       for (final cartItem in _cart) {
-         final item = cartItem.item;
-         final newQty = item.quantity - cartItem.quantity;
+      // Create sale items and update inventory
+      for (final cartItem in _cart) {
+        final item = cartItem.item;
+        final newQty = item.quantity - cartItem.quantity;
 
-         await DatabaseHelper.instance.insertOrderItem({
-           'id': '${orderId}_${item.id}',
-           'orderId': orderId,
-           'inventoryId': item.id,
-           'itemName': item.name,
-           'quantity': cartItem.quantity,
-           'buyPrice': item.buyPrice,
-           'sellPrice': item.sellPrice,
-           'totalCost': item.buyPrice * cartItem.quantity,
-           'totalRevenue': item.sellPrice * cartItem.quantity,
-           'profit': (item.sellPrice - item.buyPrice) * cartItem.quantity,
-         });
+        await DatabaseHelper.instance.insertSaleItem({
+          'id': '${saleId}_${item.id}',
+          'saleId': saleId,
+          'inventoryId': item.id,
+          'itemName': item.name,
+          'quantity': cartItem.quantity,
+          'buyPrice': item.buyPrice,
+          'sellPrice': item.sellPrice,
+          'totalCost': item.buyPrice * cartItem.quantity,
+          'totalRevenue': item.sellPrice * cartItem.quantity,
+          'profit': (item.sellPrice - item.buyPrice) * cartItem.quantity,
+        });
 
-         // Update inventory
-         await DatabaseHelper.instance.updateItem({
-           'id': item.id,
-           'name': item.name,
-           'category': item.category,
-           'quantity': newQty,
-           'buyPrice': item.buyPrice,
-           'sellPrice': item.sellPrice,
-           'unit': item.unit,
-           'description': item.description,
-           'createdAt': item.createdAt.toIso8601String(),
-         });
-       }
+        // Update inventory
+        await DatabaseHelper.instance.updateItem({
+          'id': item.id,
+          'name': item.name,
+          'category': item.category,
+          'quantity': newQty,
+          'buyPrice': item.buyPrice,
+          'sellPrice': item.sellPrice,
+          'unit': item.unit,
+          'description': item.description,
+          'createdAt': item.createdAt.toIso8601String(),
+        });
+      }
 
-       // Notify that sales data has changed
-       SalesBus().notifySalesUpdated();
+      // Notify that sales data has changed
+      SalesBus().notifySalesUpdated();
 
-       _cart.clear();
+      _cart.clear();
       _customerNameController.text = 'Walk-in Customer';
       _customerPhoneController.clear();
       _notesController.clear();
 
-if (!mounted) return;
-       await _loadInventory();
-       if (!mounted) return;
-       // Close the cart bottom sheet before showing receipt
-       Navigator.of(context).pop();
-       _showReceiptDialog(orderId, subtotal, totalProfit, itemCount);
+      if (!mounted) return;
+      await _loadInventory();
+      if (!mounted) return;
+      // Close the cart bottom sheet before showing receipt
+      Navigator.of(context).pop();
+      _showReceiptDialog(saleId, subtotal, totalProfit, itemCount);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -244,23 +244,23 @@ return _CartBottomSheetContent(
      );
    }
 
-  void _showReceiptDialog(String orderId, double subtotal, double totalProfit, int itemCount) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
-          children: [
-            Icon(Icons.check_circle, color: Colors.green),
-            SizedBox(width: 8),
-            Text('Sale Complete'),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Order ID: $orderId', style: const TextStyle(fontSize: 12)),
+void _showReceiptDialog(String saleId, double subtotal, double totalProfit, int itemCount) {
+     showDialog(
+       context: context,
+       builder: (context) => AlertDialog(
+         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+         title: const Row(
+           children: [
+             Icon(Icons.check_circle, color: Colors.green),
+             SizedBox(width: 8),
+             Text('Sale Complete'),
+           ],
+         ),
+         content: Column(
+           mainAxisSize: MainAxisSize.min,
+           crossAxisAlignment: CrossAxisAlignment.start,
+           children: [
+             Text('Sale ID: $saleId', style: const TextStyle(fontSize: 12)),
             const SizedBox(height: 8),
             Text('Items: $itemCount', style: const TextStyle(fontSize: 12)),
             const SizedBox(height: 8),

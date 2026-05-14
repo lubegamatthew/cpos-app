@@ -140,19 +140,19 @@ class _SalesPageState extends State<SalesPage> {
           final sales = snapshot.data!;
 
           // Pre-compute sections
-          final totalSales = sales.fold<double>(
-            0,
-            (sum, s) =>
-                sum +
-                ((s['order'] as Map<String, dynamic>)['totalAmount']
-                    as double),
-          );
-          final totalProfit = sales.fold<double>(
-            0,
-            (sum, s) =>
-                sum +
-                ((s['order'] as Map<String, dynamic>)['totalProfit']
-                    as double),
+final totalSales = sales.fold<double>(
+             0,
+             (sum, s) =>
+                 sum +
+                 ((s['sale'] as Map<String, dynamic>)['totalAmount']
+                     as double),
+           );
+           final totalProfit = sales.fold<double>(
+             0,
+             (sum, s) =>
+                 sum +
+                 ((s['sale'] as Map<String, dynamic>)['totalProfit']
+                     as double),
           );
           final totalItems = sales.fold<int>(
             0,
@@ -232,15 +232,14 @@ class _SalesPageState extends State<SalesPage> {
                     children: [
                       _buildTableHeader(),
                       ...sales.asMap().entries.map((entry) {
-                        final index = entry.key;
-                        final sale = entry.value;
-                        final order =
-                            sale['order'] as Map<String, dynamic>;
-                        final items =
-                            sale['items'] as List<Map<String, dynamic>>;
+final index = entry.key;
+                         final saleData = entry.value;
+                         final sale = saleData['sale'] as Map<String, dynamic>;
+                         final items =
+                             saleData['items'] as List<Map<String, dynamic>>;
                         final isLast = index == sales.length - 1;
                         return _buildTableRow(
-                          order: order,
+                          sale: sale,
                           items: items,
                           isLast: isLast,
                         );
@@ -351,12 +350,12 @@ class _SalesPageState extends State<SalesPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Recent orders included in this total:',
+          'Recent sales included in this total:',
           style: TextStyle(fontSize: 11, color: Colors.grey),
         ),
         const SizedBox(height: 8),
-        ...sales.take(10).map((sale) {
-           final order = sale['order'] as Map<String, dynamic>;
+...sales.take(10).map((sale) {
+           final innerSale = sale['sale'] as Map<String, dynamic>;
            return Padding(
             padding: const EdgeInsets.symmetric(vertical: 4),
             child: Row(
@@ -364,16 +363,16 @@ class _SalesPageState extends State<SalesPage> {
               children: [
                 Expanded(
                   child: Text(
-                    order['id'],
+                    innerSale['id'],
                     style: const TextStyle(fontSize: 12),
                   ),
                 ),
                 Text(
-                  order['customerName'],
+                  innerSale['customerName'],
                   style: const TextStyle(fontSize: 12, color: Colors.grey),
                 ),
                 Text(
-                  _formatCurrency(order['totalAmount']),
+                  _formatCurrency(innerSale['totalAmount']),
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -382,7 +381,7 @@ class _SalesPageState extends State<SalesPage> {
               ],
             ),
           );
-        }),
+         }),
         if (sales.length > 10)
           Padding(
             padding: const EdgeInsets.only(top: 8),
@@ -400,37 +399,41 @@ class _SalesPageState extends State<SalesPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Profit breakdown by order:',
+          'Profit breakdown by sale:',
           style: TextStyle(fontSize: 11, color: Colors.grey),
         ),
         const SizedBox(height: 8),
-        ...sales.take(10).map((sale) {
-          final order = sale['order'] as Map<String, dynamic>;
-          return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(
-                    '${order['id']} — ${order['customerName']}',
-                    style: const TextStyle(fontSize: 12),
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 1,
-                  ),
-                ),
-                Text(
-                  _formatCurrency(order['totalProfit']),
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.green,
-                  ),
-                ),
-              ],
-            ),
-          );
-        }),
+...sales.take(10).map((sale) {
+           final innerSale = sale['sale'] as Map<String, dynamic>;
+           return Padding(
+             padding: const EdgeInsets.symmetric(vertical: 4),
+             child: Row(
+               mainAxisAlignment: MainAxisAlignment.spaceBetween,
+               children: [
+                 Expanded(
+                   child: Text(
+                     innerSale['id'],
+                     style: const TextStyle(fontSize: 12),
+                     overflow: TextOverflow.ellipsis,
+                     maxLines: 1,
+                   ),
+                 ),
+                 Text(
+                   '${innerSale['customerName']}',
+                   style: const TextStyle(fontSize: 12, color: Colors.grey),
+                 ),
+                 Text(
+                   _formatCurrency(innerSale['totalProfit']),
+                   style: const TextStyle(
+                     fontSize: 12,
+                     fontWeight: FontWeight.w600,
+                     color: Colors.green,
+                   ),
+                 ),
+               ],
+             ),
+           );
+         }),
         if (sales.length > 10)
           Padding(
             padding: const EdgeInsets.only(top: 8),
@@ -448,13 +451,13 @@ class _SalesPageState extends State<SalesPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Itemised breakdown across all orders:',
+          'Itemised breakdown across all sales:',
           style: TextStyle(fontSize: 11, color: Colors.grey),
         ),
         const SizedBox(height: 8),
         ...sales.take(5).expand((sale) {
           final items = sale['items'] as List<Map<String, dynamic>>;
-          final orderId = (sale['order'] as Map<String, dynamic>)['id'];
+          final saleId = (sale['sale'] as Map<String, dynamic>)['id'];
           return items.map((item) {
             return Padding(
               padding: const EdgeInsets.symmetric(vertical: 3),
@@ -463,7 +466,7 @@ class _SalesPageState extends State<SalesPage> {
                 children: [
                   Expanded(
                     child: Text(
-                      '[$orderId] ${item['itemName']}',
+                      '[$saleId] ${item['itemName']}',
                       style: const TextStyle(fontSize: 12),
                       overflow: TextOverflow.ellipsis,
                       maxLines: 1,
@@ -482,7 +485,7 @@ class _SalesPageState extends State<SalesPage> {
           Padding(
             padding: const EdgeInsets.only(top: 8),
             child: Text(
-              '...and ${sales.length - 5} more orders',
+              '...and ${sales.length - 5} more sales',
               style: const TextStyle(fontSize: 12, color: Colors.grey),
             ),
           ),
@@ -551,15 +554,15 @@ class _SalesPageState extends State<SalesPage> {
     );
   }
 
-  Widget _buildTableRow({
-    required Map<String, dynamic> order,
-    required List<Map<String, dynamic>> items,
-    required bool isLast,
-  }) {
-    final orderId = order['id'] as String;
-    final customer = order['customerName'] as String;
-    final totalAmount = order['totalAmount'] as double;
-    final createdAt = order['createdAt'] as String;
+Widget _buildTableRow({
+     required Map<String, dynamic> sale,
+     required List<Map<String, dynamic>> items,
+     required bool isLast,
+   }) {
+     final saleId = sale['id'] as String;
+     final customer = sale['customerName'] as String;
+     final totalAmount = sale['totalAmount'] as double;
+     final createdAt = sale['createdAt'] as String;
 
     final dateTime = DateTime.tryParse(createdAt);
     final formattedDate =
@@ -579,7 +582,7 @@ class _SalesPageState extends State<SalesPage> {
                 return AlertDialog(
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16)),
-                  title: Text('Order $orderId'),
+                  title: Text('Sale $saleId'),
                   content: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
@@ -646,9 +649,9 @@ class _SalesPageState extends State<SalesPage> {
                 Expanded(
                   flex: 1,
                   child: Text(
-                    orderId.length > 8
-                        ? orderId.substring(0, 8)
-                        : orderId,
+saleId.length > 8
+                         ? saleId.substring(0, 8)
+                         : saleId,
                     style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,

@@ -293,7 +293,7 @@ class _POSDashboardState extends State<POSDashboard> {
   bool _sidebarOpen = false;
   bool _financialReportsExpanded = false;
   bool _lowStockExpanded = false;
-  List<Map<String, dynamic>> _recentOrders = [];
+  List<Map<String, dynamic>> _recentSales = [];
   List<Map<String, dynamic>> _lowStockItems = [];
   Map<String, dynamic> _stats = {
     'todaySales': 0.0,
@@ -322,66 +322,66 @@ class _POSDashboardState extends State<POSDashboard> {
   }
 
   Future<void> _loadDashboardData() async {
-    final orders = await DatabaseHelper.instance.getAllOrders();
-    final inventory = await DatabaseHelper.instance.getAllInventoryItems();
-    
-    final now = DateTime.now();
-    final todayStart = DateTime(now.year, now.month, now.day);
-    final weekStart = now.subtract(Duration(days: now.weekday - 1));
-    final weekStartDate = DateTime(weekStart.year, weekStart.month, weekStart.day);
-    
-    // Today's stats
-    double todaySales = 0;
-    int todayOrders = 0;
-    int itemsSold = 0;
-    
-    for (final order in orders) {
-      final createdAt = DateTime.tryParse(order['createdAt'] ?? '');
-      if (createdAt != null && createdAt.isAfter(todayStart)) {
-        todaySales += (order['totalAmount'] as double);
-        todayOrders += 1;
-      }
-    }
-    
-    // Calculate items sold today
-    for (final order in orders) {
-      final createdAt = DateTime.tryParse(order['createdAt'] ?? '');
-      if (createdAt != null && createdAt.isAfter(todayStart)) {
-        final items = await DatabaseHelper.instance.getOrderItems(order['id']);
-        for (final item in items) {
-          itemsSold += (item['quantity'] as int);
-        }
-      }
-    }
-    
-    // Low stock items (quantity < 10)
-    final lowStockItems = inventory.where((item) => (item['quantity'] as int) < 10).toList();
-    
-    // Weekly profit
-    double weeklyProfit = 0;
-    for (final order in orders) {
-      final createdAt = DateTime.tryParse(order['createdAt'] ?? '');
-      if (createdAt != null && createdAt.isAfter(weekStartDate)) {
-        weeklyProfit += (order['totalProfit'] as double);
-      }
-    }
-    
-    // Recent orders (most recent 5)
-    final recentOrders = orders.take(5).toList();
-    
-    if (!mounted) return;
-    
-    setState(() {
-      _recentOrders = recentOrders;
-      _lowStockItems = lowStockItems;
-      _stats = {
-        'todaySales': todaySales,
-        'todayOrders': todayOrders,
-        'itemsSold': itemsSold,
-        'lowStock': lowStockItems.length,
-        'weeklyProfit': weeklyProfit,
-      };
-    });
+final sales = await DatabaseHelper.instance.getAllSales();
+     final inventory = await DatabaseHelper.instance.getAllInventoryItems();
+
+     final now = DateTime.now();
+     final todayStart = DateTime(now.year, now.month, now.day);
+     final weekStart = now.subtract(Duration(days: now.weekday - 1));
+     final weekStartDate = DateTime(weekStart.year, weekStart.month, weekStart.day);
+
+     // Today's stats
+     double todaySales = 0;
+     int todaySaleCount = 0;
+     int itemsSold = 0;
+
+     for (final sale in sales) {
+       final createdAt = DateTime.tryParse(sale['createdAt'] ?? '');
+       if (createdAt != null && createdAt.isAfter(todayStart)) {
+         todaySales += (sale['totalAmount'] as double);
+         todaySaleCount += 1;
+       }
+     }
+
+     // Calculate items sold today
+     for (final sale in sales) {
+       final createdAt = DateTime.tryParse(sale['createdAt'] ?? '');
+       if (createdAt != null && createdAt.isAfter(todayStart)) {
+         final items = await DatabaseHelper.instance.getSaleItems(sale['id']);
+         for (final item in items) {
+           itemsSold += (item['quantity'] as int);
+         }
+       }
+     }
+
+     // Low stock items (quantity < 10)
+     final lowStockItems = inventory.where((item) => (item['quantity'] as int) < 10).toList();
+
+     // Weekly profit
+     double weeklyProfit = 0;
+     for (final sale in sales) {
+       final createdAt = DateTime.tryParse(sale['createdAt'] ?? '');
+       if (createdAt != null && createdAt.isAfter(weekStartDate)) {
+         weeklyProfit += (sale['totalProfit'] as double);
+       }
+     }
+
+     // Recent sales (most recent 5)
+     final recentSales = sales.take(5).toList();
+
+     if (!mounted) return;
+
+     setState(() {
+       _recentSales = recentSales;
+       _lowStockItems = lowStockItems;
+       _stats = {
+         'todaySales': todaySales,
+         'todayOrders': todaySaleCount,
+         'itemsSold': itemsSold,
+         'lowStock': lowStockItems.length,
+         'weeklyProfit': weeklyProfit,
+       };
+     });
   }
 
   @override
@@ -824,29 +824,29 @@ _SidebarItem(
           ),
           const SizedBox(height: 24),
 
-          // Recent activity
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Recent Sales',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-              ),
-              TextButton(
-                onPressed: () {
-                  setState(() {
-                    _selectedIndex = 3;
-                  });
-                },
-                child: const Text('View All'),
-              ),
-            ],
-          ),
+// Recent activity
+           Row(
+             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+             children: [
+               Text(
+                 'Recent Sales',
+                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                       fontWeight: FontWeight.w600,
+                     ),
+               ),
+               TextButton(
+                 onPressed: () {
+                   setState(() {
+                     _selectedIndex = 3;
+                   });
+                 },
+                 child: const Text('View All'),
+               ),
+             ],
+           ),
           const SizedBox(height: 8),
           Card(
-            child: _recentOrders.isEmpty
+            child: _recentSales.isEmpty
                 ? const Padding(
                     padding: EdgeInsets.all(16),
                     child: Center(
@@ -859,45 +859,45 @@ _SidebarItem(
                       ),
                     ),
                   )
-                : ListView.separated(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: _recentOrders.length,
-                    separatorBuilder: (context, index) => const Divider(height: 1, indent: 16, endIndent: 16),
-                    itemBuilder: (context, index) {
-                      final order = _recentOrders[index];
-                      final createdAt = DateTime.tryParse(order['createdAt'] ?? '');
-                      final formattedDate = createdAt != null
-                          ? '${createdAt.day.toString().padLeft(2, '0')}/${createdAt.month.toString().padLeft(2, '0')}/${createdAt.year.toString().substring(2)}'
-                          : 'N/A';
-                      
-                      return ListTile(
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        leading: CircleAvatar(
-                          backgroundColor: _getStatusColor(order['status'] ?? 'Completed').withValues(alpha: 0.1),
-                          child: Icon(
-                            Icons.receipt_outlined,
-                            color: _getStatusColor(order['status'] ?? 'Completed'),
-                            size: 20,
-                          ),
-                        ),
-                        title: Text(
-                          '${order['id']} - ${order['customerName']}',
-                          style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
-                        ),
-                        subtitle: Text(
-                          formattedDate,
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                            fontSize: 11,
-                          ),
-                        ),
-                        trailing: Text(
-                          'UGX ${(order['totalAmount'] as double).toStringAsFixed(0)}',
-                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
-                        ),
-                      );
-                    },
+                  : ListView.separated(
+                     shrinkWrap: true,
+                     physics: const NeverScrollableScrollPhysics(),
+                     itemCount: _recentSales.length,
+                     separatorBuilder: (context, index) => const Divider(height: 1, indent: 16, endIndent: 16),
+                     itemBuilder: (context, index) {
+                       final sale = _recentSales[index];
+                       final createdAt = DateTime.tryParse(sale['createdAt'] ?? '');
+                       final formattedDate = createdAt != null
+                           ? '${createdAt.day.toString().padLeft(2, '0')}/${createdAt.month.toString().padLeft(2, '0')}/${createdAt.year.toString().substring(2)}'
+                           : 'N/A';
+
+                       return ListTile(
+                         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                         leading: CircleAvatar(
+                           backgroundColor: _getStatusColor(sale['status'] ?? 'Completed').withValues(alpha: 0.1),
+                           child: Icon(
+                             Icons.receipt_outlined,
+                             color: _getStatusColor(sale['status'] ?? 'Completed'),
+                             size: 20,
+                           ),
+                         ),
+                         title: Text(
+                           '${sale['id']} - ${sale['customerName']}',
+                           style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+                         ),
+                         subtitle: Text(
+                           formattedDate,
+                           style: TextStyle(
+                             color: Theme.of(context).colorScheme.onSurfaceVariant,
+                             fontSize: 11,
+                           ),
+                         ),
+                         trailing: Text(
+                           'UGX ${(sale['totalAmount'] as double).toStringAsFixed(0)}',
+                           style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                         ),
+                       );
+                     },
                   ),
           ),
           const SizedBox(height: 80), // Space for bottom nav
