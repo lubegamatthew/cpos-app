@@ -1,6 +1,16 @@
 -- POS Database Schema
 -- Database: cpos.db (SQLite)
--- Version: 2
+-- Version: 4
+
+-- ============================================
+-- Table: categories
+-- ============================================
+CREATE TABLE IF NOT EXISTS categories (
+  id          TEXT PRIMARY KEY,
+  name        TEXT NOT NULL UNIQUE,
+  description TEXT DEFAULT '',
+  createdAt   TEXT NOT NULL
+);
 
 -- ============================================
 -- Table: inventory

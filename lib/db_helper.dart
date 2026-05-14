@@ -18,26 +18,37 @@ Future<Database> _initDB(String filePath) async {
     final path = join(dbPath, filePath);
     return await openDatabase(
       path,
-      version: 3,
+      version: 4,
       onCreate: _createDB,
       onUpgrade: _upgradeDB,
     );
   }
 
   Future _createDB(Database db, int version) async {
+    // Create categories table first
+    await db.execute('''
+      CREATE TABLE categories (
+        id          TEXT PRIMARY KEY,
+        name        TEXT NOT NULL UNIQUE,
+        description TEXT DEFAULT '',
+        createdAt   TEXT NOT NULL
+      )
+    ''');
+
     await db.execute('''
       CREATE TABLE inventory (
-        id TEXT PRIMARY KEY,
-        name TEXT NOT NULL,
-        category TEXT NOT NULL,
-        quantity INTEGER NOT NULL,
-        buyPrice REAL NOT NULL,
-        sellPrice REAL NOT NULL,
-        unit TEXT DEFAULT 'pcs',
+        id          TEXT PRIMARY KEY,
+        name        TEXT NOT NULL,
+        categoryId  TEXT NOT NULL,
+        quantity    INTEGER NOT NULL,
+        buyPrice    REAL NOT NULL,
+        sellPrice   REAL NOT NULL,
+        unit        TEXT DEFAULT 'pcs',
         description TEXT DEFAULT '',
-        createdAt TEXT NOT NULL
+        createdAt   TEXT NOT NULL,
+        FOREIGN KEY (categoryId) REFERENCES categories (id) ON DELETE RESTRICT
       )
-''');
+    ''');
 
     await db.execute('''
         CREATE TABLE sales (
@@ -177,13 +188,118 @@ Future _upgradeDB(Database db, int oldVersion, int newVersion) async {
         ''');
       }
     }
+
+    if (oldVersion < 4) {
+      // Migration to add categories table and convert category TEXT to categoryId foreign key
+      await _migrateToCategoriesTable(db);
+    }
+  }
+
+  Future<void> _migrateToCategoriesTable(Database db) async {
+    // Step 1: Get all existing inventory items
+    final inventoryItems = await db.query('inventory');
+
+    // Step 2: Create categories table
+    await db.execute('''
+      CREATE TABLE categories (
+        id          TEXT PRIMARY KEY,
+        name        TEXT NOT NULL UNIQUE,
+        description TEXT DEFAULT '',
+        createdAt   TEXT NOT NULL
+      )
+    ''');
+
+    // Step 3: Extract unique categories and create category records
+    final uniqueCategories = <String>{};
+    for (final item in inventoryItems) {
+      final categoryName = item['category'] as String? ?? 'Uncategorized';
+      uniqueCategories.add(categoryName);
+    }
+
+    // Insert categories
+    final now = DateTime.now().toIso8601String();
+    for (final categoryName in uniqueCategories) {
+      await db.insert(
+        'categories',
+        {
+          'id': 'CAT-${DateTime.now().millisecondsSinceEpoch}-${uniqueCategories.toList().indexOf(categoryName)}',
+          'name': categoryName,
+          'description': '',
+          'createdAt': now,
+        },
+      );
+    }
+
+    // Step 4: Create new inventory table with categoryId foreign key
+    await db.execute('''
+      CREATE TABLE inventory_new (
+        id          TEXT PRIMARY KEY,
+        name        TEXT NOT NULL,
+        categoryId  TEXT NOT NULL,
+        quantity    INTEGER NOT NULL,
+        buyPrice    REAL NOT NULL,
+        sellPrice   REAL NOT NULL,
+        unit        TEXT DEFAULT 'pcs',
+        description TEXT DEFAULT '',
+        createdAt   TEXT NOT NULL,
+        FOREIGN KEY (categoryId) REFERENCES categories (id) ON DELETE RESTRICT
+      )
+    ''');
+
+    // Step 5: Migrate data - map category names to category IDs
+    final categoriesMap = <String, String>{}; // categoryName -> categoryId
+    final allCategories = await db.query('categories');
+    for (final cat in allCategories) {
+      categoriesMap[cat['name'] as String] = cat['id'] as String;
+    }
+
+    for (final item in inventoryItems) {
+      final categoryName = item['category'] as String? ?? 'Uncategorized';
+      final categoryId = categoriesMap[categoryName] ?? 'CAT-DEFAULT';
+
+      await db.insert('inventory_new', {
+        'id': item['id'],
+        'name': item['name'],
+        'categoryId': categoryId,
+        'quantity': item['quantity'],
+        'buyPrice': item['buyPrice'],
+        'sellPrice': item['sellPrice'],
+        'unit': item['unit'] ?? 'pcs',
+        'description': item['description'] ?? '',
+        'createdAt': item['createdAt'],
+      });
+    }
+
+    // Step 6: Drop old table and rename new table
+    await db.execute('DROP TABLE inventory');
+    await db.execute('ALTER TABLE inventory_new RENAME TO inventory');
   }
 
   Future<void> insertInventoryItem(Map<String, dynamic> item) async {
     final db = await database;
+    final categoryName = item['category'] as String? ?? 'Uncategorized';
+    
+    // Ensure category exists and get its ID
+    await ensureCategoryExists(categoryName);
+    final categoryId = await getCategoryIdByName(categoryName);
+    
+    if (categoryId == null) {
+      throw Exception('Failed to create/find category: $categoryName');
+    }
+
     await db.insert(
       'inventory',
-      item,
+      {
+        'id': item['id'],
+        'name': item['name'],
+        'categoryId': categoryId,
+        'quantity': item['quantity'],
+        'buyPrice': item['buyPrice'],
+        'sellPrice': item['sellPrice'],
+        'unit': item['unit'] ?? 'pcs',
+        'description': item['description'] ?? '',
+        'createdAt': item['createdAt'],
+      },
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }
@@ -203,7 +319,12 @@ Future _upgradeDB(Database db, int oldVersion, int newVersion) async {
 
   Future<List<Map<String, dynamic>>> getAllInventoryItems() async {
     final db = await database;
-    return await db.query('inventory', orderBy: 'name ASC');
+    return await db.rawQuery('''
+      SELECT i.*, c.name as category
+      FROM inventory i
+      LEFT JOIN categories c ON i.categoryId = c.id
+      ORDER BY i.name ASC
+    ''');
   }
 
   Future<int> getCount() async {
@@ -234,6 +355,87 @@ Future _upgradeDB(Database db, int oldVersion, int newVersion) async {
       where: 'id = ?',
       whereArgs: [item['id']],
     );
+  }
+
+  // Categories methods
+  Future<void> insertCategory(Map<String, dynamic> category) async {
+    final db = await database;
+    await db.insert(
+      'categories',
+      category,
+      conflictAlgorithm: ConflictAlgorithm.abort,
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> getAllCategories() async {
+    final db = await database;
+    return await db.query(
+      'categories',
+      orderBy: 'name ASC',
+    );
+  }
+
+  Future<Map<String, dynamic>?> getCategory(String id) async {
+    final db = await database;
+    final results = await db.query(
+      'categories',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+    return results.isNotEmpty ? results.first : null;
+  }
+
+  Future<void> updateCategory(Map<String, dynamic> category) async {
+    final db = await database;
+    await db.update(
+      'categories',
+      category,
+      where: 'id = ?',
+      whereArgs: [category['id']],
+    );
+  }
+
+  Future<void> deleteCategory(String id) async {
+    final db = await database;
+    // Check if category is in use
+    final itemsUsingCategory = await db.query(
+      'inventory',
+      where: 'categoryId = ?',
+      whereArgs: [id],
+    );
+
+    if (itemsUsingCategory.isNotEmpty) {
+      throw Exception('Cannot delete category: ${itemsUsingCategory.length} item(s) are using this category');
+    }
+
+    await db.delete(
+      'categories',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  Future<String?> getCategoryIdByName(String name) async {
+    final db = await database;
+    final results = await db.query(
+      'categories',
+      where: 'name = ?',
+      whereArgs: [name],
+    );
+    return results.isNotEmpty ? results.first['id'] as String : null;
+  }
+
+  Future<void> ensureCategoryExists(String categoryName) async {
+    final existingId = await getCategoryIdByName(categoryName);
+    if (existingId == null) {
+      final newId = 'CAT-${DateTime.now().millisecondsSinceEpoch}';
+      await insertCategory({
+        'id': newId,
+        'name': categoryName,
+        'description': '',
+        'createdAt': DateTime.now().toIso8601String(),
+      });
+    }
   }
 
 // Sales methods
