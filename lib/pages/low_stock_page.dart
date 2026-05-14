@@ -279,6 +279,7 @@ class _LowStockPageState extends State<LowStockPage> {
               setState(() {
                 _selectedFilter = value;
               });
+              _filterItems();
             },
             itemBuilder: (context) => [
               const PopupMenuItem(value: 'All', child: Text('All Low Stock')),
