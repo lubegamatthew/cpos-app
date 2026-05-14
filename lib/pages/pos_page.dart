@@ -590,13 +590,13 @@ IconButton(
                      itemBuilder: (context, index) {
                        final cartItem = cart[index];
                        final item = cartItem.item;
-                       return Padding(
-                         padding: const EdgeInsets.symmetric(vertical: 8),
-                         child: Row(
-                           crossAxisAlignment: CrossAxisAlignment.start,
-                           children: [
-                             // Item icon
-                             Container(
+return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Item icon
+                              Container(
                                width: 48,
                                height: 48,
                                decoration: BoxDecoration(
@@ -617,7 +617,7 @@ IconButton(
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                     ),
-                                    const SizedBox(height: 2),
+                                    const SizedBox(height: 1),
                                     Row(
                                       children: [
                                         Expanded(
@@ -672,7 +672,7 @@ IconButton(
                                         ),
                                       ],
                                     ),
-                                    const SizedBox(height: 2),
+                                    const SizedBox(height: 1),
                                     Text(
                                       'UGX ${item.sellPrice.toStringAsFixed(0)} / ${item.unit}',
                                       style: const TextStyle(fontSize: 12, color: Colors.green, fontWeight: FontWeight.w600),
