@@ -307,10 +307,31 @@ Future _upgradeDB(Database db, int oldVersion, int newVersion) async {
   Future<void> insertAllInventoryItems(List<Map<String, dynamic>> items) async {
     final db = await database;
     final batch = db.batch();
+    
     for (final item in items) {
+      final categoryName = item['category'] as String? ?? 'Uncategorized';
+      
+      // Ensure category exists and get its ID
+      await ensureCategoryExists(categoryName);
+      final categoryId = await getCategoryIdByName(categoryName);
+      
+      if (categoryId == null) {
+        throw Exception('Failed to create/find category: $categoryName');
+      }
+
       batch.insert(
         'inventory',
-        item,
+        {
+          'id': item['id'],
+          'name': item['name'],
+          'categoryId': categoryId,
+          'quantity': item['quantity'],
+          'buyPrice': item['buyPrice'],
+          'sellPrice': item['sellPrice'],
+          'unit': item['unit'] ?? 'pcs',
+          'description': item['description'] ?? '',
+          'createdAt': item['createdAt'],
+        },
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
     }
@@ -349,6 +370,22 @@ Future _upgradeDB(Database db, int oldVersion, int newVersion) async {
 
   Future<void> updateItem(Map<String, dynamic> item) async {
     final db = await database;
+    
+    // If item contains 'category' field, convert to categoryId
+    if (item.containsKey('category')) {
+      final categoryName = item['category'] as String? ?? 'Uncategorized';
+      await ensureCategoryExists(categoryName);
+      final categoryId = await getCategoryIdByName(categoryName);
+      
+      if (categoryId == null) {
+        throw Exception('Failed to find/create category: $categoryName');
+      }
+
+      item = Map<String, dynamic>.from(item);
+      item['categoryId'] = categoryId;
+      item.remove('category');
+    }
+
     await db.update(
       'inventory',
       item,
