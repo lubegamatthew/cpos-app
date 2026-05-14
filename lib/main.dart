@@ -311,7 +311,10 @@ class _POSDashboardState extends State<POSDashboard> {
   void initState() {
     super.initState();
     _salesBus.addListener(_onSalesUpdated);
-    _loadDashboardData();
+    // Load dashboard data with a small delay to ensure build is complete
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadDashboardData();
+    });
   }
 
   @override
@@ -325,67 +328,79 @@ class _POSDashboardState extends State<POSDashboard> {
   }
 
   Future<void> _loadDashboardData() async {
-final sales = await DatabaseHelper.instance.getAllSales();
-     final inventory = await DatabaseHelper.instance.getAllInventoryItems();
+    try {
+      final inventory = await DatabaseHelper.instance.getAllInventoryItems();
+      final lowStockItems = inventory.where((item) => (item['quantity'] as int? ?? 0) < 10).toList();
 
-     final now = DateTime.now();
-     final todayStart = DateTime(now.year, now.month, now.day);
-     final weekStart = now.subtract(Duration(days: now.weekday - 1));
-     final weekStartDate = DateTime(weekStart.year, weekStart.month, weekStart.day);
+      // Update low stock immediately
+      if (!mounted) return;
+      setState(() {
+        _lowStockItems = lowStockItems;
+        _stats = {
+          ..._stats,
+          'lowStock': lowStockItems.length,
+        };
+      });
 
-     // Today's stats
-     double todaySales = 0;
-     int todaySaleCount = 0;
-     int itemsSold = 0;
+      // Load other stats (non-critical)
+      try {
+        final sales = await DatabaseHelper.instance.getAllSales();
+        final now = DateTime.now();
+        final todayStart = DateTime(now.year, now.month, now.day);
+        final weekStart = now.subtract(Duration(days: now.weekday - 1));
+        final weekStartDate = DateTime(weekStart.year, weekStart.month, weekStart.day);
 
-     for (final sale in sales) {
-       final createdAt = DateTime.tryParse(sale['createdAt'] ?? '');
-       if (createdAt != null && createdAt.isAfter(todayStart)) {
-         todaySales += (sale['totalAmount'] as double);
-         todaySaleCount += 1;
-       }
+        double todaySales = 0;
+        int todaySaleCount = 0;
+        int itemsSold = 0;
+        double weeklyProfit = 0;
+
+        for (final sale in sales) {
+          final createdAt = DateTime.tryParse(sale['createdAt'] ?? '');
+          if (createdAt != null && createdAt.isAfter(todayStart)) {
+            todaySales += (sale['totalAmount'] as double? ?? 0.0);
+            todaySaleCount += 1;
+          }
+        }
+
+        for (final sale in sales) {
+          final createdAt = DateTime.tryParse(sale['createdAt'] ?? '');
+          if (createdAt != null && createdAt.isAfter(todayStart)) {
+            final items = await DatabaseHelper.instance.getSaleItems(sale['id']);
+            for (final item in items) {
+              itemsSold += (item['quantity'] as int? ?? 0);
+            }
+          }
+        }
+
+        for (final sale in sales) {
+          final createdAt = DateTime.tryParse(sale['createdAt'] ?? '');
+          if (createdAt != null && createdAt.isAfter(weekStartDate)) {
+            weeklyProfit += (sale['totalProfit'] as double? ?? 0.0);
+          }
+        }
+
+        final recentSales = sales.take(5).toList();
+
+        if (!mounted) return;
+
+        setState(() {
+          _recentSales = recentSales;
+          _stats = {
+            'todaySales': todaySales,
+            'todayOrders': todaySaleCount,
+            'itemsSold': itemsSold,
+            'lowStock': lowStockItems.length,
+            'weeklyProfit': weeklyProfit,
+          };
+        });
+      } catch (e) {
+        debugPrint('Error loading sales data: $e');
+      }
+     } catch (e) {
+       debugPrint('Error loading inventory data: $e');
      }
-
-     // Calculate items sold today
-     for (final sale in sales) {
-       final createdAt = DateTime.tryParse(sale['createdAt'] ?? '');
-       if (createdAt != null && createdAt.isAfter(todayStart)) {
-         final items = await DatabaseHelper.instance.getSaleItems(sale['id']);
-         for (final item in items) {
-           itemsSold += (item['quantity'] as int);
-         }
-       }
-     }
-
-     // Low stock items (quantity < 10)
-     final lowStockItems = inventory.where((item) => (item['quantity'] as int) < 10).toList();
-
-     // Weekly profit
-     double weeklyProfit = 0;
-     for (final sale in sales) {
-       final createdAt = DateTime.tryParse(sale['createdAt'] ?? '');
-       if (createdAt != null && createdAt.isAfter(weekStartDate)) {
-         weeklyProfit += (sale['totalProfit'] as double);
-       }
-     }
-
-     // Recent sales (most recent 5)
-     final recentSales = sales.take(5).toList();
-
-     if (!mounted) return;
-
-     setState(() {
-       _recentSales = recentSales;
-       _lowStockItems = lowStockItems;
-       _stats = {
-         'todaySales': todaySales,
-         'todayOrders': todaySaleCount,
-         'itemsSold': itemsSold,
-         'lowStock': lowStockItems.length,
-         'weeklyProfit': weeklyProfit,
-       };
-     });
-  }
+   }
 
   @override
   Widget build(BuildContext context) {
@@ -401,6 +416,7 @@ final sales = await DatabaseHelper.instance.getAllSales();
         leading: IconButton(
           icon: const Icon(Icons.menu),
           onPressed: () {
+            _loadDashboardData();
             setState(() {
               _sidebarOpen = true;
             });

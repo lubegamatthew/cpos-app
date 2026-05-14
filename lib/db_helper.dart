@@ -400,7 +400,7 @@ Future _upgradeDB(Database db, int oldVersion, int newVersion) async {
     await db.insert(
       'categories',
       category,
-      conflictAlgorithm: ConflictAlgorithm.abort,
+      conflictAlgorithm: ConflictAlgorithm.ignore,
     );
   }
 
