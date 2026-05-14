@@ -643,251 +643,243 @@ itemBuilder: (context, index) {
 
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (context) {
-        return AlertDialog(
-          title: Text(
-            isEdit ? 'Edit Spare Part' : 'Add New Spare Part',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w700,
+        return Dialog(
+          insetPadding: EdgeInsets.zero,
+          backgroundColor: Colors.transparent,
+          child: Container(
+            width: double.infinity,
+            height: double.infinity,
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+            ),
+            child: Column(
+              children: [
+                // App Bar
+                Container(
+                  padding: EdgeInsets.only(
+                    top: MediaQuery.of(context).padding.top + 12,
+                    bottom: 12,
+                    left: 16,
+                    right: 16,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.04),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.close, size: 24),
+                        onPressed: () => Navigator.pop(context),
+                        style: IconButton.styleFrom(
+                          backgroundColor: Colors.grey.withValues(alpha: 0.1),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          isEdit ? 'Edit Spare Part' : 'Add New Spare Part',
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      FilledButton(
+                        onPressed: () {
+                          if (formKey.currentState?.validate() ?? false) {
+                            final qty = int.parse(quantityController.text.trim());
+                            final bp = double.parse(buyPriceController.text.trim());
+                            final sp = double.parse(sellPriceController.text.trim());
+                            final newItem = InventoryItem(
+                              id: item?.id ?? 'INV-${(_inventoryItems.length + 1).toString().padLeft(3, '0')}',
+                              name: nameController.text.trim(),
+                              category: categoryController.text.trim(),
+                              quantity: qty,
+                              buyPrice: bp,
+                              sellPrice: sp,
+                              unit: unitController.text.trim().isEmpty ? 'pcs' : unitController.text.trim(),
+                              description: descriptionController.text.trim(),
+                              createdAt: DateTime.now(),
+                            );
+
+                            setState(() {
+                              if (isEdit) {
+                                final index = _inventoryItems.indexWhere((i) => i.id == item.id);
+                                if (index != -1) {
+                                  _inventoryItems[index] = newItem;
+                                }
+                              } else {
+                                _inventoryItems.add(newItem);
+                              }
+                            });
+
+                            Navigator.pop(context);
+
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  isEdit ? 'Spare part updated successfully' : 'Spare part added successfully',
+                                  style: const TextStyle(fontWeight: FontWeight.w500),
+                                ),
+                                backgroundColor: Colors.green,
+                                behavior: SnackBarBehavior.floating,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                margin: const EdgeInsets.all(16),
+                              ),
+                            );
+                          }
+                        },
+                        style: FilledButton.styleFrom(
+                          backgroundColor: Theme.of(context).colorScheme.primary,
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        ),
+                        child: Text(isEdit ? 'Update' : 'Add Part'),
+                      ),
+                    ],
+                  ),
                 ),
-          ),
-          content: SingleChildScrollView(
-            child: Form(
-              key: formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Table header
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(8),
+                // Form Content
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(16),
+                    child: Form(
+                      key: formKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 8),
+                          _buildFormField(
+                            controller: categoryController,
+                            label: 'Category *',
+                            hintText: 'e.g., Brake System',
+                            icon: Icons.category_outlined,
+                            validator: (value) {
+                              if (value == null || value.trim().isEmpty) {
+                                return 'Category is required';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                          _buildFormField(
+                            controller: nameController,
+                            label: 'Item Name *',
+                            hintText: 'e.g., Front Brake Disc',
+                            icon: Icons.label_outlined,
+                            validator: (value) {
+                              if (value == null || value.trim().isEmpty) {
+                                return 'Item name is required';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: _buildFormField(
+                                  controller: quantityController,
+                                  label: 'Quantity *',
+                                  hintText: '0',
+                                  icon: Icons.numbers,
+                                  keyboardType: TextInputType.number,
+                                  validator: (value) {
+                                    if (value == null || value.trim().isEmpty) {
+                                      return 'Required';
+                                    }
+                                    final parsed = int.tryParse(value);
+                                    if (parsed == null || parsed < 0) {
+                                      return 'Must be valid number';
+                                    }
+                                    return null;
+                                  },
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: _buildFormField(
+                                  controller: unitController,
+                                  label: 'Unit',
+                                  hintText: 'pcs',
+                                  icon: Icons.straighten_outlined,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: _buildFormField(
+                                  controller: buyPriceController,
+                                  label: 'Buy Price *',
+                                  hintText: '0.00',
+                                  icon: Icons.attach_money_outlined,
+                                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                  validator: (value) {
+                                    if (value == null || value.trim().isEmpty) {
+                                      return 'Required';
+                                    }
+                                    final parsed = double.tryParse(value);
+                                    if (parsed == null || parsed < 0) {
+                                      return 'Must be valid number';
+                                    }
+                                    return null;
+                                  },
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: _buildFormField(
+                                  controller: sellPriceController,
+                                  label: 'Selling Price *',
+                                  hintText: '0.00',
+                                  icon: Icons.price_change_outlined,
+                                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                  validator: (value) {
+                                    if (value == null || value.trim().isEmpty) {
+                                      return 'Required';
+                                    }
+                                    final parsed = double.tryParse(value);
+                                    if (parsed == null || parsed < 0) {
+                                      return 'Must be valid number';
+                                    }
+                                    return null;
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          _buildFormField(
+                            controller: descriptionController,
+                            label: 'Description',
+                            hintText: 'Optional (e.g., compatible models)',
+                            icon: Icons.description_outlined,
+                            maxLines: 2,
+                          ),
+                          const SizedBox(height: 24),
+                        ],
+                      ),
                     ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          flex: 2,
-                          child: Text('Category', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurfaceVariant)),
-                        ),
-                        Expanded(
-                          flex: 3,
-                          child: Text('Item Name', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurfaceVariant)),
-                        ),
-                        Expanded(
-                          flex: 1,
-                          child: Text('QTY', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurfaceVariant), textAlign: TextAlign.center),
-                        ),
-                        Expanded(
-                          flex: 2,
-                          child: Text('B.P', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurfaceVariant), textAlign: TextAlign.right),
-                        ),
-                        Expanded(
-                          flex: 2,
-                          child: Text('Total', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurfaceVariant), textAlign: TextAlign.right),
-                        ),
-                        Expanded(
-                          flex: 2,
-                          child: Text('S.P', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurfaceVariant), textAlign: TextAlign.right),
-                        ),
-                      ],
-                    ),
                   ),
-                  const SizedBox(height: 8),
-                  // Category field
-                  _buildFormField(
-                    controller: categoryController,
-                    label: 'Category *',
-                    hintText: 'e.g., Brake System',
-                    icon: Icons.category_outlined,
-                    fontSize: 12,
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Category is required';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 8),
-                  // Item Name field
-                  _buildFormField(
-                    controller: nameController,
-                    label: 'Item Name *',
-                    hintText: 'e.g., Front Brake Disc',
-                    icon: Icons.label_outlined,
-                    fontSize: 12,
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Item name is required';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 8),
-                  // QTY, Unit, B.P row
-                  Row(
-                    children: [
-                      Expanded(
-                        flex: 3,
-                        child: _buildFormField(
-                          controller: quantityController,
-                          label: 'Quantity *',
-                          hintText: '0',
-                          icon: Icons.numbers,
-                          fontSize: 12,
-                          keyboardType: TextInputType.number,
-                          validator: (value) {
-                            if (value == null || value.trim().isEmpty) {
-                              return 'Required';
-                            }
-                            final parsed = int.tryParse(value);
-                            if (parsed == null || parsed < 0) {
-                              return 'Must be valid';
-                            }
-                            return null;
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        flex: 2,
-                        child: _buildFormField(
-                          controller: unitController,
-                          label: 'Unit',
-                          hintText: 'pcs',
-                          icon: Icons.straighten_outlined,
-                          fontSize: 12,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        flex: 3,
-                        child: _buildFormField(
-                          controller: buyPriceController,
-                          label: 'Buy Price *',
-                          hintText: '0.00',
-                          icon: Icons.attach_money_outlined,
-                          fontSize: 12,
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          validator: (value) {
-                            if (value == null || value.trim().isEmpty) {
-                              return 'Required';
-                            }
-                            final parsed = double.tryParse(value);
-                            if (parsed == null || parsed < 0) {
-                              return 'Must be valid';
-                            }
-                            return null;
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  // Total (auto-calculated) and S.P row
-                  Row(
-                    children: [
-                      Expanded(
-                        flex: 3,
-                        child: _buildFormField(
-                          controller: descriptionController,
-                          label: 'Description',
-                          hintText: 'Optional (e.g., compatible models)',
-                          icon: Icons.description_outlined,
-                          fontSize: 12,
-                          maxLines: 2,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        flex: 3,
-                        child: _buildFormField(
-                          controller: sellPriceController,
-                          label: 'Selling Price (S.P) *',
-                          hintText: '0.00',
-                          icon: Icons.price_change_outlined,
-                          fontSize: 12,
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          validator: (value) {
-                            if (value == null || value.trim().isEmpty) {
-                              return 'Required';
-                            }
-                            final parsed = double.tryParse(value);
-                            if (parsed == null || parsed < 0) {
-                              return 'Must be valid';
-                            }
-                            return null;
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(
-                'Cancel',
-                style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
-              ),
-            ),
-            FilledButton(
-              onPressed: () {
-                if (formKey.currentState?.validate() ?? false) {
-                  final qty = int.parse(quantityController.text.trim());
-                  final bp = double.parse(buyPriceController.text.trim());
-                  final sp = double.parse(sellPriceController.text.trim());
-                  final newItem = InventoryItem(
-                    id: item?.id ?? 'INV-${(_inventoryItems.length + 1).toString().padLeft(3, '0')}',
-                    name: nameController.text.trim(),
-                    category: categoryController.text.trim(),
-                    quantity: qty,
-                    buyPrice: bp,
-                    sellPrice: sp,
-                    unit: unitController.text.trim().isEmpty ? 'pcs' : unitController.text.trim(),
-                    description: descriptionController.text.trim(),
-                    createdAt: DateTime.now(),
-                  );
-
-                  setState(() {
-                    if (isEdit) {
-                      final index = _inventoryItems.indexWhere((i) => i.id == item.id);
-                      if (index != -1) {
-                        _inventoryItems[index] = newItem;
-                      }
-                    } else {
-                      _inventoryItems.add(newItem);
-                    }
-                  });
-
-                  Navigator.pop(context);
-
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        isEdit ? 'Spare part updated successfully' : 'Spare part added successfully',
-                        style: const TextStyle(fontWeight: FontWeight.w500),
-                      ),
-                      backgroundColor: Colors.green,
-                      behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      margin: const EdgeInsets.all(16),
-                    ),
-                  );
-                }
-              },
-              style: FilledButton.styleFrom(
-                backgroundColor: Theme.of(context).colorScheme.primary,
-              ),
-              child: Text(isEdit ? 'Update' : 'Add Part'),
-            ),
-          ],
         );
       },
     );
