@@ -606,78 +606,80 @@ IconButton(
                                child: const Icon(Icons.inventory_2_outlined, color: Colors.blue, size: 24),
                              ),
                              const SizedBox(width: 12),
-                             // Item details
-                             Expanded(
-                               child: Column(
-                                 crossAxisAlignment: CrossAxisAlignment.start,
-                                 children: [
+// Item details
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
                                     Text(
                                       item.name,
                                       style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-                                      maxLines: 2,
+                                      maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                     ),
-                                   const SizedBox(height: 2),
-                                   Text(
-                                     item.category,
-                                     style: TextStyle(
-                                       fontSize: 11,
-                                       color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                     ),
-                                   ),
-                                   const SizedBox(height: 2),
-                                   Text(
-                                     'UGX ${item.sellPrice.toStringAsFixed(0)} / ${item.unit}',
-                                     style: const TextStyle(fontSize: 12, color: Colors.green, fontWeight: FontWeight.w600),
-                                   ),
-                                 ],
-                               ),
-                             ),
-                             // Quantity controls
-                             Row(
-                               children: [
-                                 IconButton(
-                                   icon: const Icon(Icons.remove_circle_outline, size: 20, color: Colors.red),
-                                   onPressed: () => onUpdateQuantity(item.id, -1),
-                                   padding: EdgeInsets.zero,
-                                   constraints: const BoxConstraints(),
-                                 ),
-                                 SizedBox(
-                                   width: 28,
-                                   child: Center(
-                                     child: Text(
-                                       '${cartItem.quantity}',
-                                       style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
-                                     ),
-                                   ),
-                                 ),
-                                 IconButton(
-                                   icon: const Icon(Icons.add_circle_outline, size: 20, color: Colors.green),
-                                   onPressed: () {
-                                     if (cartItem.quantity < item.quantity) {
-                                       onUpdateQuantity(item.id, 1);
-                                     } else {
-                                       ScaffoldMessenger.of(context).showSnackBar(
-                                         const SnackBar(
-                                           content: Text('Not enough stock'),
-                                           behavior: SnackBarBehavior.floating,
-                                           duration: Duration(seconds: 1),
-                                         ),
-                                       );
-                                     }
-                                   },
-                                   padding: EdgeInsets.zero,
-                                   constraints: const BoxConstraints(),
-                                 ),
-                               ],
-                             ),
-                             // Remove button
-                             IconButton(
-                               icon: const Icon(Icons.delete_outline, size: 20, color: Colors.grey),
-                               onPressed: () => onRemove(item.id),
-                               padding: EdgeInsets.zero,
-                               constraints: const BoxConstraints(),
-                             ),
+                                    const SizedBox(height: 2),
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            item.category,
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                            ),
+                                          ),
+                                        ),
+                                        // Quantity controls
+                                        IconButton(
+                                          icon: const Icon(Icons.remove_circle_outline, size: 20, color: Colors.red),
+                                          onPressed: () => onUpdateQuantity(item.id, -1),
+                                          padding: EdgeInsets.zero,
+                                          constraints: const BoxConstraints(),
+                                        ),
+                                        SizedBox(
+                                          width: 28,
+                                          child: Center(
+                                            child: Text(
+                                              '${cartItem.quantity}',
+                                              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                                            ),
+                                          ),
+                                        ),
+                                        IconButton(
+                                          icon: const Icon(Icons.add_circle_outline, size: 20, color: Colors.green),
+                                          onPressed: () {
+                                            if (cartItem.quantity < item.quantity) {
+                                              onUpdateQuantity(item.id, 1);
+                                            } else {
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                const SnackBar(
+                                                  content: Text('Not enough stock'),
+                                                  behavior: SnackBarBehavior.floating,
+                                                  duration: Duration(seconds: 1),
+                                                ),
+                                              );
+                                            }
+                                          },
+                                          padding: EdgeInsets.zero,
+                                          constraints: const BoxConstraints(),
+                                        ),
+                                        // Remove button
+                                        IconButton(
+                                          icon: const Icon(Icons.delete_outline, size: 20, color: Colors.grey),
+                                          onPressed: () => onRemove(item.id),
+                                          padding: EdgeInsets.zero,
+                                          constraints: const BoxConstraints(),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      'UGX ${item.sellPrice.toStringAsFixed(0)} / ${item.unit}',
+                                      style: const TextStyle(fontSize: 12, color: Colors.green, fontWeight: FontWeight.w600),
+                                    ),
+                                  ],
+                                ),
+                              ),
                            ],
                          ),
                        );
