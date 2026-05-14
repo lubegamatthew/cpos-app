@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'pages/inventory_page.dart';
 import 'pages/loading_page.dart';
+import 'pages/low_stock_page.dart';
 import 'pages/pos_page.dart';
 import 'pages/sales_page.dart';
 import 'db_helper.dart';
@@ -66,6 +67,7 @@ class MyApp extends StatelessWidget {
       routes: {
         '/loading': (context) => const LoadingPage(),
         '/dashboard': (context) => const POSDashboard(),
+        '/lowStock': (context) => const LowStockPage(),
       },
     );
   }
@@ -292,7 +294,6 @@ class _POSDashboardState extends State<POSDashboard> {
   int _selectedIndex = 0;
   bool _sidebarOpen = false;
   bool _financialReportsExpanded = false;
-  bool _lowStockExpanded = false;
   List<Map<String, dynamic>> _recentSales = [];
   List<Map<String, dynamic>> _lowStockItems = [];
   Map<String, dynamic> _stats = {
@@ -671,46 +672,33 @@ _SidebarItem(
                    selected: false,
                    onTap: () {},
                  ),
-                _SidebarItem(
-                  icon: Icons.inventory_2_outlined,
-                  title: 'Low Stock',
-                  selected: _lowStockExpanded,
-                   onTap: () {
-                     setState(() {
-                       _lowStockExpanded = !_lowStockExpanded;
-                     });
-                   },
-                  trailing: _lowStockItems.isNotEmpty
-                      ? Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: BoxDecoration(
-                            color: Colors.red,
-                            shape: BoxShape.circle,
-                          ),
-                          constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
-                          child: Text(
-                            '${_lowStockItems.length}',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
+                  _SidebarItem(
+                     icon: Icons.inventory_2_outlined,
+                     title: 'Low Stock',
+                     selected: false,
+                     onTap: () {
+                       Navigator.pushNamed(context, '/lowStock');
+                     },
+                    trailing: _lowStockItems.isNotEmpty
+                        ? Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: Colors.red,
+                              shape: BoxShape.circle,
                             ),
-                            textAlign: TextAlign.center,
-                          ),
-                        )
-                      : null,
-                ),
-                  if (_lowStockExpanded) ...[
-                    ..._lowStockItems.map((item) {
-                      final quantity = item['quantity'] as int;
-                      final isCritical = quantity <= 5;
-                      return _SidebarSubItem(
-                        icon: isCritical ? Icons.error_outline : Icons.warning_amber_outlined,
-                        title: '${item['name']} ($quantity left)',
-                        onTap: () {},
-                      );
-                    }),
-                  ],
+                            constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
+                            child: Text(
+                              '${_lowStockItems.length}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          )
+                        : null,
+                  ),
                  _SidebarItem(
                    icon: Icons.settings_outlined,
                    title: 'Settings',

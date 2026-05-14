@@ -13,15 +13,15 @@ class DatabaseHelper {
     return _database!;
   }
 
-  Future<Database> _initDB(String filePath) async {
+Future<Database> _initDB(String filePath) async {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, filePath);
-return await openDatabase(
-       path,
-       version: 3,
-       onCreate: _createDB,
-       onUpgrade: _upgradeDB,
-     );
+    return await openDatabase(
+      path,
+      version: 3,
+      onCreate: _createDB,
+      onUpgrade: _upgradeDB,
+    );
   }
 
   Future _createDB(Database db, int version) async {
@@ -37,72 +37,145 @@ return await openDatabase(
         description TEXT DEFAULT '',
         createdAt TEXT NOT NULL
       )
-    ''');
+''');
 
-await db.execute('''
-       CREATE TABLE sales (
-         id TEXT PRIMARY KEY,
-         customerName TEXT DEFAULT 'Walk-in Customer',
-         customerPhone TEXT DEFAULT '',
-         totalAmount REAL NOT NULL,
-         totalProfit REAL NOT NULL,
-         paymentMethod TEXT DEFAULT 'Cash',
-         status TEXT DEFAULT 'Completed',
-         notes TEXT DEFAULT '',
-         createdAt TEXT NOT NULL
-       )
-     ''');
+    await db.execute('''
+        CREATE TABLE sales (
+          id TEXT PRIMARY KEY,
+          customerName TEXT DEFAULT 'Walk-in Customer',
+          customerPhone TEXT DEFAULT '',
+          totalAmount REAL NOT NULL,
+          totalProfit REAL NOT NULL,
+          paymentMethod TEXT DEFAULT 'Cash',
+          status TEXT DEFAULT 'Completed',
+          notes TEXT DEFAULT '',
+          createdAt TEXT NOT NULL
+        )
+      ''');
 
-     await db.execute('''
-       CREATE TABLE sale_items (
-         id TEXT PRIMARY KEY,
-         saleId TEXT NOT NULL,
-         inventoryId TEXT NOT NULL,
-         itemName TEXT NOT NULL,
-         quantity INTEGER NOT NULL,
-         buyPrice REAL NOT NULL,
-         sellPrice REAL NOT NULL,
-         totalCost REAL NOT NULL,
-         totalRevenue REAL NOT NULL,
-         profit REAL NOT NULL,
-         FOREIGN KEY (saleId) REFERENCES sales (id) ON DELETE CASCADE,
-         FOREIGN KEY (inventoryId) REFERENCES inventory (id)
-       )
-     ''');
+    await db.execute('''
+        CREATE TABLE sale_items (
+          id TEXT PRIMARY KEY,
+          saleId TEXT NOT NULL,
+          inventoryId TEXT NOT NULL,
+          itemName TEXT NOT NULL,
+          quantity INTEGER NOT NULL,
+          buyPrice REAL NOT NULL,
+          sellPrice REAL NOT NULL,
+          totalCost REAL NOT NULL,
+          totalRevenue REAL NOT NULL,
+          profit REAL NOT NULL,
+          FOREIGN KEY (saleId) REFERENCES sales (id) ON DELETE CASCADE,
+          FOREIGN KEY (inventoryId) REFERENCES inventory (id)
+        )
+      ''');
   }
 
-  Future _upgradeDB(Database db, int oldVersion, int newVersion) async {
-if (oldVersion < 2) {
-       await db.execute('''
-         CREATE TABLE sales (
-           id TEXT PRIMARY KEY,
-           customerName TEXT DEFAULT 'Walk-in Customer',
-           customerPhone TEXT DEFAULT '',
-           totalAmount REAL NOT NULL,
-           totalProfit REAL NOT NULL,
-           paymentMethod TEXT DEFAULT 'Cash',
-           status TEXT DEFAULT 'Completed',
-           notes TEXT DEFAULT '',
-           createdAt TEXT NOT NULL
-         )
-       ''');
+Future _upgradeDB(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute('''
+        CREATE TABLE sales (
+          id TEXT PRIMARY KEY,
+          customerName TEXT DEFAULT 'Walk-in Customer',
+          customerPhone TEXT DEFAULT '',
+          totalAmount REAL NOT NULL,
+          totalProfit REAL NOT NULL,
+          paymentMethod TEXT DEFAULT 'Cash',
+          status TEXT DEFAULT 'Completed',
+          notes TEXT DEFAULT '',
+          createdAt TEXT NOT NULL
+        )
+      ''');
 
-       await db.execute('''
-         CREATE TABLE sale_items (
-           id TEXT PRIMARY KEY,
-           saleId TEXT NOT NULL,
-           inventoryId TEXT NOT NULL,
-           itemName TEXT NOT NULL,
-           quantity INTEGER NOT NULL,
-           buyPrice REAL NOT NULL,
-           sellPrice REAL NOT NULL,
-           totalCost REAL NOT NULL,
-           totalRevenue REAL NOT NULL,
-           profit REAL NOT NULL,
-           FOREIGN KEY (saleId) REFERENCES sales (id) ON DELETE CASCADE,
-           FOREIGN KEY (inventoryId) REFERENCES inventory (id)
-         )
-       ''');
+      await db.execute('''
+        CREATE TABLE sale_items (
+          id TEXT PRIMARY KEY,
+          saleId TEXT NOT NULL,
+          inventoryId TEXT NOT NULL,
+          itemName TEXT NOT NULL,
+          quantity INTEGER NOT NULL,
+          buyPrice REAL NOT NULL,
+          sellPrice REAL NOT NULL,
+          totalCost REAL NOT NULL,
+          totalRevenue REAL NOT NULL,
+          profit REAL NOT NULL,
+          FOREIGN KEY (saleId) REFERENCES sales (id) ON DELETE CASCADE,
+          FOREIGN KEY (inventoryId) REFERENCES inventory (id)
+        )
+      ''');
+    }
+
+    if (oldVersion < 3) {
+      // Migrate from orders/order_items to sales/sale_items
+      await db.execute('DROP TABLE IF EXISTS sales');
+      await db.execute('DROP TABLE IF EXISTS sale_items');
+
+      // Rename existing tables first, then rebuild with new column names
+      final tableInfo = await db.rawQuery(
+          "SELECT name FROM sqlite_master WHERE type='table' AND name='orders'");
+      if (tableInfo.isNotEmpty) {
+        await db.execute('ALTER TABLE orders RENAME TO sales');
+      } else {
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS sales (
+            id TEXT PRIMARY KEY,
+            customerName TEXT DEFAULT 'Walk-in Customer',
+            customerPhone TEXT DEFAULT '',
+            totalAmount REAL NOT NULL,
+            totalProfit REAL NOT NULL,
+            paymentMethod TEXT DEFAULT 'Cash',
+            status TEXT DEFAULT 'Completed',
+            notes TEXT DEFAULT '',
+            createdAt TEXT NOT NULL
+          )
+        ''');
+      }
+
+      final orderItemsTableInfo = await db
+          .rawQuery("SELECT name FROM sqlite_master WHERE type='table' AND name='order_items'");
+      if (orderItemsTableInfo.isNotEmpty) {
+        // Create temp table with new schema (saleId instead of orderId)
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS sale_items_temp (
+            id TEXT PRIMARY KEY,
+            saleId TEXT NOT NULL,
+            inventoryId TEXT NOT NULL,
+            itemName TEXT NOT NULL,
+            quantity INTEGER NOT NULL,
+            buyPrice REAL NOT NULL,
+            sellPrice REAL NOT NULL,
+            totalCost REAL NOT NULL,
+            totalRevenue REAL NOT NULL,
+            profit REAL NOT NULL,
+            FOREIGN KEY (saleId) REFERENCES sales (id) ON DELETE CASCADE,
+            FOREIGN KEY (inventoryId) REFERENCES inventory (id)
+          )
+        ''');
+        // Copy data with column rename: orderId -> saleId
+        await db.execute('''
+          INSERT INTO sale_items_temp(id, saleId, inventoryId, itemName, quantity, buyPrice, sellPrice, totalCost, totalRevenue, profit)
+          SELECT id, orderId, inventoryId, itemName, quantity, buyPrice, sellPrice, totalCost, totalRevenue, profit FROM order_items
+        ''');
+        await db.execute('DROP TABLE order_items');
+        await db.execute('ALTER TABLE sale_items_temp RENAME TO sale_items');
+      } else {
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS sale_items (
+            id TEXT PRIMARY KEY,
+            saleId TEXT NOT NULL,
+            inventoryId TEXT NOT NULL,
+            itemName TEXT NOT NULL,
+            quantity INTEGER NOT NULL,
+            buyPrice REAL NOT NULL,
+            sellPrice REAL NOT NULL,
+            totalCost REAL NOT NULL,
+            totalRevenue REAL NOT NULL,
+            profit REAL NOT NULL,
+            FOREIGN KEY (saleId) REFERENCES sales (id) ON DELETE CASCADE,
+            FOREIGN KEY (inventoryId) REFERENCES inventory (id)
+          )
+        ''');
+      }
     }
   }
 
