@@ -675,13 +675,11 @@ _SidebarItem(
                   icon: Icons.inventory_2_outlined,
                   title: 'Low Stock',
                   selected: _lowStockExpanded,
-                  onTap: () {
-                    print('Low Stock tapped! Expanded: $_lowStockExpanded');
-                    setState(() {
-                      _lowStockExpanded = !_lowStockExpanded;
-                      print('New expanded state: $_lowStockExpanded');
-                    });
-                  },
+                   onTap: () {
+                     setState(() {
+                       _lowStockExpanded = !_lowStockExpanded;
+                     });
+                   },
                   trailing: _lowStockItems.isNotEmpty
                       ? Container(
                           padding: const EdgeInsets.all(4),
@@ -708,7 +706,7 @@ _SidebarItem(
                       final isCritical = quantity <= 5;
                       return _SidebarSubItem(
                         icon: isCritical ? Icons.error_outline : Icons.warning_amber_outlined,
-                        title: '${item['name']} (${quantity} left)',
+                        title: '${item['name']} ($quantity left)',
                         onTap: () {},
                       );
                     }),

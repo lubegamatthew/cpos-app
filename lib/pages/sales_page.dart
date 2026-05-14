@@ -49,25 +49,25 @@ class _SalesPageState extends State<SalesPage> {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
         children: [
-          _FilterChip(
+          _filterChip(
             label: 'All',
             isSelected: _selectedFilter == 'all',
             onSelected: () => setState(() => _selectedFilter = 'all'),
           ),
           const SizedBox(width: 8),
-          _FilterChip(
+          _filterChip(
             label: 'Today',
             isSelected: _selectedFilter == 'today',
             onSelected: () => setState(() => _selectedFilter = 'today'),
           ),
           const SizedBox(width: 8),
-          _FilterChip(
+          _filterChip(
             label: 'This Week',
             isSelected: _selectedFilter == 'week',
             onSelected: () => setState(() => _selectedFilter = 'week'),
           ),
           const SizedBox(width: 8),
-          _FilterChip(
+          _filterChip(
             label: 'This Month',
             isSelected: _selectedFilter == 'month',
             onSelected: () => setState(() => _selectedFilter = 'month'),
@@ -256,7 +256,7 @@ class _SalesPageState extends State<SalesPage> {
     );
   }
 
-  Widget _FilterChip({
+   Widget _filterChip({
     required String label,
     required bool isSelected,
     required VoidCallback onSelected,
