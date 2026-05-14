@@ -611,12 +611,12 @@ IconButton(
                                child: Column(
                                  crossAxisAlignment: CrossAxisAlignment.start,
                                  children: [
-                                   Text(
-                                     item.name,
-                                     style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-                                     maxLines: 1,
-                                     overflow: TextOverflow.ellipsis,
-                                   ),
+                                    Text(
+                                      item.name,
+                                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
                                    const SizedBox(height: 2),
                                    Text(
                                      item.category,
