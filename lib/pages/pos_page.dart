@@ -299,27 +299,7 @@ return _CartBottomSheetContent(
           'Point of Sale',
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
-actions: [
-           Padding(
-             padding: const EdgeInsets.only(right: 8),
-             child: IconButton(
-               icon: const Icon(Icons.refresh),
-               onPressed: () async {
-                 final messenger = ScaffoldMessenger.of(context);
-                 await _loadInventory();
-                 if (!mounted) return;
-                 messenger.showSnackBar(
-                   const SnackBar(
-                     content: Text('Inventory refreshed'),
-                     behavior: SnackBarBehavior.floating,
-                     margin: EdgeInsets.all(16),
-                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(8))),
-                   ),
-                 );
-               },
-             ),
-           ),
-         ],
+        actions: const [],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(84),
           child: Container(
@@ -370,8 +350,25 @@ actions: [
                         style: const TextStyle(fontSize: 14),
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    Stack(
+                     const SizedBox(width: 8),
+                     IconButton(
+                       icon: const Icon(Icons.refresh),
+                       onPressed: () async {
+                         final messenger = ScaffoldMessenger.of(context);
+                         await _loadInventory();
+                         if (!mounted) return;
+                         messenger.showSnackBar(
+                           const SnackBar(
+                             content: Text('Inventory refreshed'),
+                             behavior: SnackBarBehavior.floating,
+                             margin: EdgeInsets.all(16),
+                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(8))),
+                           ),
+                         );
+                       },
+                     ),
+                     const SizedBox(width: 8),
+                     Stack(
                       children: [
                         FloatingActionButton(
                           heroTag: 'cart_fab',
@@ -867,9 +864,9 @@ class _PosProductCard extends StatelessWidget {
                               color: Colors.green,
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
+                         ),
+                     const SizedBox(width: 8),
+                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
                             color: Colors.grey.withValues(alpha: 0.1),
