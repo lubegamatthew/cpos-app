@@ -3,6 +3,7 @@ import 'dart:developer';
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'pages/categories_page.dart';
 import 'pages/inventory_page.dart';
 import 'pages/loading_page.dart';
 import 'pages/low_stock_page.dart';
@@ -68,6 +69,7 @@ class MyApp extends StatelessWidget {
         '/loading': (context) => const LoadingPage(),
         '/dashboard': (context) => const POSDashboard(),
         '/lowStock': (context) => const LowStockPage(),
+        '/categories': (context) => const CategoriesPage(),
       },
     );
   }
@@ -660,12 +662,14 @@ _SidebarItem(
                     onTap: () {},
                   ),
                 ],
-                 _SidebarItem(
-                   icon: Icons.category_outlined,
-                   title: 'Categories',
-                   selected: false,
-                   onTap: () {},
-                 ),
+                  _SidebarItem(
+                    icon: Icons.category_outlined,
+                    title: 'Categories',
+                    selected: false,
+                    onTap: () {
+                      Navigator.pushNamed(context, '/categories');
+                    },
+                  ),
                  _SidebarItem(
                    icon: Icons.payment_outlined,
                    title: 'Payments',

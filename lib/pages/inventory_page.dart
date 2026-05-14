@@ -3,7 +3,8 @@ import '../main.dart';
 import '../db_helper.dart';
 
 class InventoryPage extends StatefulWidget {
-  const InventoryPage({super.key});
+  final String? initialCategory;
+  const InventoryPage({super.key, this.initialCategory});
 
   @override
   State<InventoryPage> createState() => _InventoryPageState();
@@ -155,6 +156,9 @@ class _InventoryPageState extends State<InventoryPage> {
   @override
   void initState() {
     super.initState();
+    if (widget.initialCategory != null) {
+      _selectedCategory = widget.initialCategory!;
+    }
     _loadFromDatabase();
   }
 
