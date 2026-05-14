@@ -311,10 +311,8 @@ class _POSDashboardState extends State<POSDashboard> {
   void initState() {
     super.initState();
     _salesBus.addListener(_onSalesUpdated);
-    // Load dashboard data with a small delay to ensure build is complete
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadDashboardData();
-    });
+    // Load dashboard data immediately
+    _loadDashboardData();
   }
 
   @override
