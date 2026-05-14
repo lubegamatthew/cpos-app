@@ -14,6 +14,7 @@ class _LowStockPageState extends State<LowStockPage> {
   List<InventoryItem> _lowStockItems = [];
   List<InventoryItem> _filteredItems = [];
   bool _isLoading = true;
+  bool _showDashboard = true;
   final TextEditingController _searchController = TextEditingController();
   String _selectedFilter = 'All';
 
@@ -107,6 +108,18 @@ class _LowStockPageState extends State<LowStockPage> {
         ),
         actions: [
           IconButton(
+            icon: Icon(
+              _showDashboard ? Icons.dashboard_outlined : Icons.dashboard,
+              color: Colors.black54,
+            ),
+            onPressed: () {
+              setState(() {
+                _showDashboard = !_showDashboard;
+              });
+            },
+            tooltip: _showDashboard ? 'Hide Dashboard' : 'Show Dashboard',
+          ),
+          IconButton(
             icon: const Icon(Icons.refresh, color: Colors.black54),
             onPressed: () {
               setState(() {
@@ -122,12 +135,12 @@ class _LowStockPageState extends State<LowStockPage> {
           : Column(
               children: [
                 _buildSearchBar(),
-                _buildStatsDashboard(stats),
+                if (_showDashboard) _buildStatsDashboard(stats),
                 Expanded(
                   child: _filteredItems.isEmpty
                       ? _buildEmptyState()
                       : ListView.builder(
-                          padding: const EdgeInsets.fromLTRB(12, 8, 12, 80),
+                          padding: EdgeInsets.fromLTRB(12, _showDashboard ? 8 : 16, 12, 80),
                           itemCount: _filteredItems.length,
                           itemBuilder: (context, index) {
                             final item = _filteredItems[index];
