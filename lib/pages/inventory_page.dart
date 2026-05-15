@@ -913,8 +913,10 @@ itemBuilder: (context, index) {
   Widget _buildCategorySelectionField() {
     return InkWell(
       onTap: () async {
+        debugPrint('Opening category selection modal...');
         final String? selected = await showModalBottomSheet<String>(
           context: context,
+          isScrollControlled: true,
           shape: const RoundedRectangleBorder(
             borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
           ),
@@ -943,6 +945,7 @@ itemBuilder: (context, index) {
                               ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1)
                               : null,
                           onTap: () {
+                            debugPrint('Category tapped: $category');
                             Navigator.pop(context, category);
                           },
                         );
@@ -954,10 +957,16 @@ itemBuilder: (context, index) {
             );
           },
         );
-        if (selected != null) {
+        debugPrint('Modal returned: $selected');
+        // Debug: Print what we got
+        debugPrint('Category selected: $selected');
+        if (selected != null && selected.isNotEmpty) {
+          debugPrint('Updating selectedCategory to: $selected');
           setState(() {
             selectedCategory = selected;
           });
+        } else {
+          debugPrint('No category selected or empty string');
         }
       },
       child: InputDecorator(
