@@ -25,17 +25,19 @@ class _InventoryPageState extends State<InventoryPage> {
   bool _isSyncing = false;
   String _syncMessage = '';
 
-  final List<String> _categories = [
-    'All Categories',
-    'Engine Parts',
-    'Brake System',
-    'Electrical',
-    'Body & Frame',
-    'Suspension',
-    'Fuel System',
-    'Transmission',
-    'Accessories',
-  ];
+  // For dropdown in add/edit dialog
+  String? selectedCategory;
+
+  List<String> get _categories {
+    final distinct = _inventoryItems.map((e) => e.category).toSet().toList();
+    if (distinct.isEmpty) {
+      // fallback to hardcoded categories
+      return ['All Categories', 'Engine Parts', 'Brake System', 'Electrical', 'Body & Frame', 'Suspension', 'Fuel System', 'Transmission', 'Accessories'];
+    }
+    distinct.sort();
+    distinct.removeWhere((c) => c == 'All Categories');
+    return ['All Categories']..addAll(distinct);
+  }
 
   final List<InventoryItem> _defaultInventoryItems = [
   // Engine Parts
@@ -632,12 +634,13 @@ itemBuilder: (context, index) {
   void _showAddEditDialog({InventoryItem? item}) {
     final isEdit = item != null;
     final nameController = TextEditingController(text: item?.name ?? '');
-    final categoryController = TextEditingController(text: item?.category ?? '');
+    // final categoryController = TextEditingController(text: item?.category ?? '');
     final quantityController = TextEditingController(text: item?.quantity.toString() ?? '');
     final buyPriceController = TextEditingController(text: item?.buyPrice.toString() ?? '');
     final sellPriceController = TextEditingController(text: item?.sellPrice.toString() ?? '');
     final unitController = TextEditingController(text: item?.unit ?? 'pcs');
     final descriptionController = TextEditingController(text: item?.description ?? '');
+    selectedCategory = item?.category;
 
     final formKey = GlobalKey<FormState>();
 
@@ -699,17 +702,17 @@ itemBuilder: (context, index) {
                             final qty = int.parse(quantityController.text.trim());
                             final bp = double.parse(buyPriceController.text.trim());
                             final sp = double.parse(sellPriceController.text.trim());
-                            final newItem = InventoryItem(
-                              id: item?.id ?? 'INV-${(_inventoryItems.length + 1).toString().padLeft(3, '0')}',
-                              name: nameController.text.trim(),
-                              category: categoryController.text.trim(),
-                              quantity: qty,
-                              buyPrice: bp,
-                              sellPrice: sp,
-                              unit: unitController.text.trim().isEmpty ? 'pcs' : unitController.text.trim(),
-                              description: descriptionController.text.trim(),
-                              createdAt: DateTime.now(),
-                            );
+                             final newItem = InventoryItem(
+                               id: item?.id ?? 'INV-${(_inventoryItems.length + 1).toString().padLeft(3, '0')}',
+                               name: nameController.text.trim(),
+                               category: selectedCategory?.isNotEmpty == true ? selectedCategory! : (item?.category ?? ''),
+                               quantity: qty,
+                               buyPrice: bp,
+                               sellPrice: sp,
+                               unit: unitController.text.trim().isEmpty ? 'pcs' : unitController.text.trim(),
+                               description: descriptionController.text.trim(),
+                               createdAt: DateTime.now(),
+                             );
 
                             setState(() {
                               if (isEdit) {
@@ -755,35 +758,24 @@ itemBuilder: (context, index) {
                     padding: const EdgeInsets.all(16),
                     child: Form(
                       key: formKey,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                         children: [
-                           const SizedBox(height: 8),
-                           _buildFormField(
-                             controller: categoryController,
-                             label: 'Category *',
-                             hintText: 'e.g., Brake System',
-                             icon: Icons.category_outlined,
-                             validator: (value) {
-                               if (value == null || value.trim().isEmpty) {
-                                 return 'Category is required';
-                               }
-                               return null;
-                             },
-                           ),
-                           const SizedBox(height: 16),
-                           _buildFormField(
-                             controller: nameController,
-                             label: 'Item Name *',
-                             hintText: 'e.g., Front Brake Disc',
-                             icon: Icons.label_outlined,
-                             validator: (value) {
-                               if (value == null || value.trim().isEmpty) {
-                                 return 'Item name is required';
-                               }
-                               return null;
-                             },
-                           ),
+                       child: Column(
+                         crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const SizedBox(height: 8),
+                            _buildCategorySelectionField(),
+                            const SizedBox(height: 16),
+                            _buildFormField(
+                              controller: nameController,
+                              label: 'Item Name *',
+                              hintText: 'e.g., Front Brake Disc',
+                              icon: Icons.label_outlined,
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'Item name is required';
+                                }
+                                return null;
+                              },
+                            ),
                            const SizedBox(height: 16),
                            _buildFormField(
                              controller: quantityController,
@@ -914,6 +906,105 @@ itemBuilder: (context, index) {
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         fillColor: Colors.white,
         filled: true,
+      ),
+    );
+  }
+
+  Widget _buildCategorySelectionField() {
+    return InkWell(
+      onTap: () async {
+        final String? selected = await showModalBottomSheet<String>(
+          context: context,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          builder: (context) {
+            return Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Select Category',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 16),
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: _categories.length,
+                      itemBuilder: (context, index) {
+                        final category = _categories[index];
+                        final bool isSelected = selectedCategory == category;
+                        return ListTile(
+                          title: Text(category),
+                          selected: isSelected,
+                          tileColor: isSelected
+                              ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1)
+                              : null,
+                          onTap: () {
+                            Navigator.pop(context, category);
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+        if (selected != null) {
+          setState(() {
+            selectedCategory = selected;
+          });
+        }
+      },
+      child: InputDecorator(
+        decoration: InputDecoration(
+          labelText: 'Category *',
+          hintText: 'Select category',
+          prefixIcon: Icon(Icons.category_outlined, size: 20, color: Theme.of(context).colorScheme.onSurfaceVariant),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide(color: Colors.grey.withValues(alpha: 0.3)),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide(color: Colors.grey.withValues(alpha: 0.2)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 1.5),
+          ),
+          errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: const BorderSide(color: Colors.red, width: 1.2),
+          ),
+          focusedErrorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: const BorderSide(color: Colors.red, width: 1.2),
+          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          fillColor: Colors.white,
+          filled: true,
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                selectedCategory ?? 'Select category',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: selectedCategory == null
+                      ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4)
+                      : Theme.of(context).colorScheme.onSurface,
+                ),
+              ),
+            ),
+            Icon(Icons.arrow_drop_down, color: Theme.of(context).colorScheme.onSurfaceVariant),
+          ],
+        ),
       ),
     );
   }
