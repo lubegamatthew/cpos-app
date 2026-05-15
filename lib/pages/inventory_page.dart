@@ -757,121 +757,103 @@ itemBuilder: (context, index) {
                       key: formKey,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const SizedBox(height: 8),
-                          _buildFormField(
-                            controller: categoryController,
-                            label: 'Category *',
-                            hintText: 'e.g., Brake System',
-                            icon: Icons.category_outlined,
-                            validator: (value) {
-                              if (value == null || value.trim().isEmpty) {
-                                return 'Category is required';
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 16),
-                          _buildFormField(
-                            controller: nameController,
-                            label: 'Item Name *',
-                            hintText: 'e.g., Front Brake Disc',
-                            icon: Icons.label_outlined,
-                            validator: (value) {
-                              if (value == null || value.trim().isEmpty) {
-                                return 'Item name is required';
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 16),
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                child: _buildFormField(
-                                  controller: quantityController,
-                                  label: 'Quantity *',
-                                  hintText: '0',
-                                  icon: Icons.numbers,
-                                  keyboardType: TextInputType.number,
-                                  validator: (value) {
-                                    if (value == null || value.trim().isEmpty) {
-                                      return 'Required';
-                                    }
-                                    final parsed = int.tryParse(value);
-                                    if (parsed == null || parsed < 0) {
-                                      return 'Must be valid number';
-                                    }
-                                    return null;
-                                  },
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: _buildFormField(
-                                  controller: unitController,
-                                  label: 'Unit',
-                                  hintText: 'pcs',
-                                  icon: Icons.straighten_outlined,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                child: _buildFormField(
-                                  controller: buyPriceController,
-                                  label: 'Buy Price *',
-                                  hintText: '0.00',
-                                  icon: Icons.attach_money_outlined,
-                                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                  validator: (value) {
-                                    if (value == null || value.trim().isEmpty) {
-                                      return 'Required';
-                                    }
-                                    final parsed = double.tryParse(value);
-                                    if (parsed == null || parsed < 0) {
-                                      return 'Must be valid number';
-                                    }
-                                    return null;
-                                  },
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: _buildFormField(
-                                  controller: sellPriceController,
-                                  label: 'Selling Price *',
-                                  hintText: '0.00',
-                                  icon: Icons.price_change_outlined,
-                                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                  validator: (value) {
-                                    if (value == null || value.trim().isEmpty) {
-                                      return 'Required';
-                                    }
-                                    final parsed = double.tryParse(value);
-                                    if (parsed == null || parsed < 0) {
-                                      return 'Must be valid number';
-                                    }
-                                    return null;
-                                  },
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-                          _buildFormField(
-                            controller: descriptionController,
-                            label: 'Description',
-                            hintText: 'Optional (e.g., compatible models)',
-                            icon: Icons.description_outlined,
-                            maxLines: 2,
-                          ),
-                          const SizedBox(height: 24),
+                         children: [
+                           const SizedBox(height: 8),
+                           _buildFormField(
+                             controller: categoryController,
+                             label: 'Category *',
+                             hintText: 'e.g., Brake System',
+                             icon: Icons.category_outlined,
+                             validator: (value) {
+                               if (value == null || value.trim().isEmpty) {
+                                 return 'Category is required';
+                               }
+                               return null;
+                             },
+                           ),
+                           const SizedBox(height: 16),
+                           _buildFormField(
+                             controller: nameController,
+                             label: 'Item Name *',
+                             hintText: 'e.g., Front Brake Disc',
+                             icon: Icons.label_outlined,
+                             validator: (value) {
+                               if (value == null || value.trim().isEmpty) {
+                                 return 'Item name is required';
+                               }
+                               return null;
+                             },
+                           ),
+                           const SizedBox(height: 16),
+                           _buildFormField(
+                             controller: quantityController,
+                             label: 'Quantity *',
+                             hintText: '0',
+                             icon: Icons.numbers,
+                             keyboardType: TextInputType.number,
+                             validator: (value) {
+                               if (value == null || value.trim().isEmpty) {
+                                 return 'Required';
+                               }
+                               final parsed = int.tryParse(value);
+                               if (parsed == null || parsed < 0) {
+                                 return 'Must be valid number';
+                               }
+                               return null;
+                             },
+                           ),
+                           const SizedBox(height: 16),
+                           _buildFormField(
+                             controller: unitController,
+                             label: 'Unit',
+                             hintText: 'pcs',
+                             icon: Icons.straighten_outlined,
+                           ),
+                           const SizedBox(height: 16),
+                           _buildFormField(
+                             controller: buyPriceController,
+                             label: 'Buy Price *',
+                             hintText: '0.00',
+                             icon: Icons.attach_money_outlined,
+                             keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                             validator: (value) {
+                               if (value == null || value.trim().isEmpty) {
+                                 return 'Required';
+                               }
+                               final parsed = double.tryParse(value);
+                               if (parsed == null || parsed < 0) {
+                                 return 'Must be valid number';
+                               }
+                               return null;
+                             },
+                           ),
+                           const SizedBox(height: 16),
+                           _buildFormField(
+                             controller: sellPriceController,
+                             label: 'Selling Price *',
+                             hintText: '0.00',
+                             icon: Icons.price_change_outlined,
+                             keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                             validator: (value) {
+                               if (value == null || value.trim().isEmpty) {
+                                 return 'Required';
+                               }
+                               final parsed = double.tryParse(value);
+                               if (parsed == null || parsed < 0) {
+                                 return 'Must be valid number';
+                               }
+                               return null;
+                             },
+                           ),
+                           const SizedBox(height: 16),
+                           _buildFormField(
+                             controller: descriptionController,
+                             label: 'Description',
+                             hintText: 'Optional (e.g., compatible models)',
+                             icon: Icons.description_outlined,
+                             maxLines: 2,
+                           ),
+                           const SizedBox(height: 24),
                         ],
                       ),
                     ),
