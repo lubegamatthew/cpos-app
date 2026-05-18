@@ -1,6 +1,4 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import '../services/app_update_service.dart';
 import '../services/in_app_update_service.dart';
 
@@ -16,7 +14,6 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _checkingVersion = false;
   bool _updateAvailable = false;
   String? _latestVersion;
-  Map<String, dynamic>? _latestRelease;   // holds the release JSON since last poll
   bool _downloading = false;
   double _downloadProgress = 0;
   String _statusText = '';
@@ -28,53 +25,43 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<void> _loadVersion() async {
-    final v = await AppUpdateService.getCurrentVersionAsync();
+    await AppUpdateService.getCurrentVersionAsync();  // caches real version
     if (!mounted) return;
-    setState(() => _version = v);
+    setState(() => _version = AppUpdateService.getVersionName());
   }
 
   /// Step 1 — polls GitHub and shows the update confirmation dialog.
+  /// Delegates entirely to AppUpdateService — no duplicate API calls.
   Future<void> _checkForUpdate() async {
     setState(() {
       _checkingVersion = true;
       _downloadProgress = 0;
       _statusText = '';
     });
-    try {
-      final currentRaw = await AppUpdateService.getCurrentVersionAsync();
-      final current = _versionToInt(currentRaw.split('+').first);
 
-      final release = await _fetchLatestRelease();
-      if (release == null) {
-        _showSnack('Could not reach update server. Try again later.');
-        return;
-      }
+    final result = await AppUpdateService.checkForUpdateSimple();
+    final available = result['available'] as bool? ?? false;
 
-      final latestRaw = (release['tag_name'] as String?) ?? '';
-      final latest = _versionToInt(latestRaw);
+    if (!mounted) return;
+    setState(() => _checkingVersion = false);
 
-      // Resolve the real APK download URL from the release assets
-      final apkUrl = AppUpdateService.resolveApkUrl(release);
+    if (!available) {
+      _showSnack('You\'re already on the latest version.');
+      setState(() => _updateAvailable = false);
+      return;
+    }
 
-      if (latest > current) {
-        final notes = (release['body'] as String?) ?? '';
-        setState(() {
-          _updateAvailable = true;
-          _latestVersion = latestRaw;
-          _latestRelease = release;   // keep for the download step
-        });
-        await _showUpdateDialog(latestRaw, notes, apkUrl: apkUrl);
-      } else {
-        setState(() {
-          _updateAvailable = false;
-          _latestRelease = null;
-        });
-        _showSnack('You\'re already on the latest version.');
-      }
-    } catch (e) {
-      _showSnack('Update check failed: ${e.toString()}');
-    } finally {
-      if (mounted) setState(() => _checkingVersion = false);
+    // Update available — show the stripped version and dialog.
+    final latest       = (result['latestVersion'] as String?) ?? '';
+    final releaseNotes = (result['releaseNotes'] as String?) ?? '';
+
+    setState(() {
+      _updateAvailable = true;
+      _latestVersion   = latest;   // already stripped: "1.0.7"
+    });
+
+    if (mounted) {
+      await _showUpdateDialog(latest, releaseNotes);
     }
   }
 
@@ -86,6 +73,10 @@ class _SettingsPageState extends State<SettingsPage> {
       _statusText = 'Downloading update…';
     });
 
+    // Re-fetch release metadata so we have the exact APK URL
+    final result = await AppUpdateService.checkForUpdateSimple();
+    final releaseMap = result['_release'] as Map<String, dynamic>;
+
     try {
       await InAppUpdateService.downloadAndInstall(
         onProgress: (received, total) {
@@ -93,7 +84,7 @@ class _SettingsPageState extends State<SettingsPage> {
             setState(() => _downloadProgress = received / total);
           }
         },
-        release: _latestRelease!,
+        release: releaseMap,
       );
       if (mounted) {
         setState(() => _statusText = 'Installation starting…');
@@ -117,39 +108,10 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
-  int _versionToInt(String version) {
-    final parts = version.replaceAll(RegExp(r'[^0-9.]'), '').split('.');
-    final numbers = parts.map((p) => int.tryParse(p) ?? 0).toList();
-    while (numbers.length < 3) {
-      numbers.add(0);
-    }
-    return numbers[0] * 10000 + numbers[1] * 100 + numbers[2];
-  }
-
-  Future<Map<String, dynamic>?> _fetchLatestRelease() async {
-    try {
-      final resp = await http
-          .get(
-            Uri.parse(
-              'https://api.github.com/repos/lubegamatthew/cpos-app/releases/latest',
-            ),
-            headers: {'Accept': 'application/vnd.github.v3+json'},
-          )
-          .timeout(const Duration(seconds: 10));
-      if (resp.statusCode == 200) {
-        return jsonDecode(resp.body) as Map<String, dynamic>;
-      }
-    } catch (e) {
-      debugPrint('API error: $e');
-    }
-    return null;
-  }
-
   Future<void> _showUpdateDialog(
     String latestVersion,
-    String? notes, {
-    String? apkUrl,
-  }) async {
+    String? notes,
+  ) async {
     if (!mounted) return;
     return showDialog(
       context: context,

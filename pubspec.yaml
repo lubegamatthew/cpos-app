@@ -1,8 +1,8 @@
 name: cpos
-description: "A new Flutter project."
+description: "Chillion Point Of Sale System."
 publish_to: 'none'
 
-version: 1.0.7
+version: 1.0.8
 
 environment:
   sdk: ^3.11.5

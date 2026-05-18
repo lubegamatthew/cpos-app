@@ -6,69 +6,37 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class AppUpdateService {
-  /// GitHub repo owner and name — update if you rename/fork.
-  static const String _repoOwner = 'lubegamatthew';
-  static const String _repoName  = 'cpos-app';
-
-  /// Guard URL — keep in sync with each release.
+  // ── Constants ─────────────────────────────────────────────────────
+  static const String _repoOwner  = 'lubegamatthew';
+  static const String _repoName   = 'cpos-app';
   static const String _fallbackUrl =
       'https://github.com/$_repoOwner/$_repoName/releases/download/v1.0.4/app-release.apk';
 
+  // ── Cached version string ──────────────────────────────────────────
   static String? _currentVersion;
 
-  /// Returns the cached version string, or null if it hasn't been fetched yet.
+  /// Returns the cached version string, or null if not yet fetched.
   static String? get currentVersion => _currentVersion;
 
-  // ── Android MethodChannel ────────────────────────────────────────
-  static const MethodChannel _channel = MethodChannel(
-    'com.example.cpos/version',
-  );
+  // ── Android MethodChannel ──────────────────────────────────────────
+  static const MethodChannel _channel =
+      MethodChannel('com.example.cpos/version');
 
-  /// Android side of the version channel (reads `versionName`/`versionCode`
-  /// from the running APK's `PackageInfo` — no plugin required).
-  static Future<_VersionInfo?> _getVersionFromAndroid() async {
-    try {
-      final data = await _channel.invokeMapMethod<String, dynamic>(
-        'getVersionInfo',
-      );
-      if (data == null) return null;
-      return _VersionInfo(
-        versionName: (data['versionName'] as String?) ?? '',
-        versionCode: (data['versionCode'] as int?) ?? 0,
-      );
-    } on MissingPluginException catch (e) {
-      debugPrint('[Version] channel not registered: $e');
-    } on PlatformException catch (e) {
-      debugPrint('[Version] PlatformException: ${e.message}');
-    } catch (e) {
-      debugPrint('[Version] channel error: $e');
-    }
-    return null;
-  }
+  // ── Build-time safety net ──────────────────────────────────────────
+  /// Updated alongside `pubspec.yaml`.  Both are in sync:
+  ///   pubspec.yaml → version: 1.0.7
+  ///   _buildVersionGuard → '1.0.7+0'
+  static const String _buildVersionGuard = '1.0.7+0';
 
-  /// Reads `version:` from the pubspec bundled in the APK.
-  static Future<String?> _getVersionFromPubspec() async {
-    try {
-      final raw = await rootBundle.loadString('pubspec.yaml');
-      for (final line in raw.split('\n')) {
-        final t = line.trim();
-        if (t.startsWith('version:')) {
-          return t.substring('version:'.length).trim();
-        }
-      }
-    } catch (e) {
-      debugPrint('[Version] pubspec.yaml: $e');
-    }
-    return null;
-  }
+  // ═══════════════════════════════════════════════════════════════════════════
 
-  /// Returns "x.y.z+build" for the currently running APK.
+  /// Returns `x.y.z+build` for the currently installed APK.
   ///
-  /// Try order:
-  ///   1. `PackageInfo.fromPlatform()`  — standard plugin
-  ///   2. Android MethodChannel                   — 0-plugin, always reads the APK manifest
-  ///   3. `pubspec.yaml` in asset bundle          — not listed in assets but present after `flutter pub get`
-  ///   4. Safety-net string — update when you cut a release
+  /// Resolution order (first success wins):
+  ///   1. `PackageInfo.fromPlatform()` — standard plugin path
+  ///   2. Android `MethodChannel` — reads `PackageManager.getPackageInfo()`
+  ///   3. `pubspec.yaml` from the asset bundle
+  ///   4. `_buildVersionGuard` — compile-time safety net
   static Future<String> getCurrentVersionAsync() async {
     if (_currentVersion != null) return _currentVersion!;
     _currentVersion = await _resolveVersion();
@@ -76,11 +44,10 @@ class AppUpdateService {
   }
 
   static Future<String> _resolveVersion() async {
-    // ── 1. PackageInfo plugin ──────────────────────────────────────
+    // ── Strategy 1: PackageInfo ─────────────────────────────────────
     try {
-      final pkg = await PackageInfo.fromPlatform().timeout(
-        const Duration(milliseconds: 500),
-      );
+      final pkg = await PackageInfo.fromPlatform()
+          .timeout(const Duration(milliseconds: 500));
       final v = pkg.version.trim();
       final b = pkg.buildNumber.trim();
       if (v.isNotEmpty && v != '0.0.0' && v != '0.0') {
@@ -88,45 +55,71 @@ class AppUpdateService {
         return '$v+$b';
       }
     } catch (e) {
-      debugPrint('[Version] PackageInfo failed: $e');
+      debugPrint('[Version] PackageInfo: $e');
     }
 
-    // ── 2. Android MethodChannel ───────────────────────────────────
-    final android = await _getVersionFromAndroid();
-    if (android != null && android.versionName.isNotEmpty) {
-      final vt = _versionToInt(android.versionName);
-      if (vt > 0) {
-        debugPrint(
-          '[Version] Android channel: '
-          '${android.versionName}+${android.versionCode}',
-        );
-        return '${android.versionName}+${android.versionCode}';
+    // ── Strategy 2: Android MethodChannel ───────────────────────────
+    try {
+      final data = await _channel.invokeMapMethod<String, dynamic>(
+        'getVersionInfo',
+      );
+      if (data != null) {
+        final vn = (data['versionName'] as String?) ?? '';
+        if (vn.isNotEmpty) {
+          final vc = (data['versionCode'] as int?) ?? 0;
+          debugPrint('[Version] Android channel: $vn+$vc');
+          return '$vn+$vc';
+        }
       }
+    } catch (e) {
+      debugPrint('[Version] Android channel: $e');
     }
 
-    // ── 3. pubspec.yaml from asset bundle ──────────────────────────
-    final pubspecStr = await _getVersionFromPubspec();
-    if (pubspecStr != null) {
-      final parts = pubspecStr.split('+');
-      final vt = _versionToInt(parts.isNotEmpty ? parts[0] : pubspecStr);
-      if (vt > 0) {
-        final vn = parts.isNotEmpty ? parts[0] : pubspecStr;
-        final bn = parts.length > 1 ? parts[1] : '0';
-        debugPrint('[Version] pubspec.yaml: $vn+$bn');
-        return '$vn+$bn';
+    // ── Strategy 3: pubspec.yaml ────────────────────────────────────
+    try {
+      final raw = await rootBundle.loadString('pubspec.yaml');
+      for (final line in raw.split('\n')) {
+        final t = line.trim();
+        if (t.startsWith('version:')) {
+          final v = t.substring('version:'.length).trim();
+          if (v.isNotEmpty) {
+            debugPrint('[Version] pubspec.yaml: $v');
+            return v;
+          }
+        }
       }
+    } catch (e) {
+      debugPrint('[Version] pubspec.yaml: $e');
     }
 
-    // ── 4. Ultimate safety net ─────────────────────────────────────
-    debugPrint('[Version] all strategies failed, returning safety-net value');
-    return _safetyNetVersion();
+    // ── Strategy 4: safety net ──────────────────────────────────────
+    debugPrint('[Version] safety net: $_buildVersionGuard');
+    return _buildVersionGuard;
   }
 
-  /// Build-time safety net.
-  ///
-  /// **Never leave this stale.**  When you cut a release, bump BOTH
-  /// `pubspec.yaml` version:and this field.
-  static String _safetyNetVersion() => '1.0.0+0';
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /// Returns only the `x.y.z` part, with `+build` and leading `v` stripped.
+  /// Safe to call before or after `getCurrentVersionAsync()`.
+  static String getVersionName() {
+    final cached = _currentVersion;
+    return (cached ?? _buildVersionGuard)
+        .split('+')
+        .first
+        .replaceFirst(RegExp(r'^v'), '');
+  }
+
+  /// Returns true when `latest` is strictly newer than the installed version.
+  static bool isOlderThan(String latest) {
+    final currentPart = _currentVersion?.split('+').first ?? '';
+    return _versionToInt(currentPart) < _versionToInt(latest);
+  }
+
+  /// Strips a leading `v` from a GitHub tag: `"v1.0.7"` → `"1.0.7"`.
+  static String stripVTag(String tag) =>
+      tag.startsWith('v') ? tag.substring(1) : tag;
+
+  // ═══════════════════════════════════════════════════════════════════════════
 
   static int _versionToInt(String version) {
     final parts = version.replaceAll(RegExp(r'[^0-9.]'), '').split('.');
@@ -137,7 +130,7 @@ class AppUpdateService {
     return numbers[0] * 10000 + numbers[1] * 100 + numbers[2];
   }
 
-  // ── Network / release helpers ───────────────────────────────────
+  // ═══════════════════════════════════════════════════════════════════════════
 
   static Future<Map<String, dynamic>?> _fetchLatestRelease() async {
     try {
@@ -158,6 +151,8 @@ class AppUpdateService {
     return null;
   }
 
+  /// Scans [release] assets for the first `.apk` and returns its
+  /// `browser_download_url`.  Falls back to [_fallbackUrl].
   static String resolveApkUrl(Map<String, dynamic> release) {
     final assets = release['assets'] as List?;
     if (assets != null && assets.isNotEmpty) {
@@ -174,6 +169,8 @@ class AppUpdateService {
     return _fallbackUrl;
   }
 
+  // ═══════════════════════════════════════════════════════════════════════════
+
   static Future<void> _launchUpdateUrl({String? url}) async {
     final uri = Uri.parse(url ?? _fallbackUrl);
     if (await canLaunchUrl(uri)) {
@@ -181,10 +178,15 @@ class AppUpdateService {
     }
   }
 
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /// Checks whether a newer version is available on GitHub.
+  /// If [context] is given the update dialog is shown automatically.
+  /// Returns true when an update is available.
   static Future<bool> checkForUpdate({BuildContext? context}) async {
     try {
-      final raw         = await getCurrentVersionAsync();
-      final currentInt  = _versionToInt(raw.split('+').first);
+      final raw        = await getCurrentVersionAsync();
+      final currentInt = _versionToInt(raw.split('+').first);
 
       final release = await _fetchLatestRelease();
       if (release == null) return false;
@@ -194,10 +196,15 @@ class AppUpdateService {
       final latestInt = _versionToInt(latestRaw);
 
       if (latestInt > currentInt) {
-        final notes = (release['body'] as String?) ?? '';
-        final apkUrl = resolveApkUrl(release);
+        final notes   = (release['body'] as String?) ?? '';
+        final apkUrl  = resolveApkUrl(release);
         if (context != null && context.mounted) {
-          await _showUpdateDialog(context, latestRaw, notes, apkUrl: apkUrl);
+          await _showUpdateDialog(
+            context,
+            stripVTag(latestRaw),
+            notes,
+            apkUrl: apkUrl,
+          );
         }
         return true;
       }
@@ -205,6 +212,34 @@ class AppUpdateService {
       debugPrint('AppUpdateService: check failed — $e');
     }
     return false;
+  }
+
+  /// Lightweight check that returns structured state instead of opening
+  /// a dialog.  The full release JSON is available under `_release` so
+  /// the download step can resolve the exact APK URL without a second call.
+  static Future<Map<String, dynamic>> checkForUpdateSimple() async {
+    try {
+      final currentRaw = await getCurrentVersionAsync();
+      final currentInt = _versionToInt(currentRaw.split('+').first);
+
+      final release = await _fetchLatestRelease();
+      if (release == null) return {'available': false};
+
+      final latestRaw = (release['tag_name'] as String?) ?? '';
+      final latestInt = _versionToInt(latestRaw);
+
+      return {
+        'available':     latestInt > currentInt,
+        'latestTag':     latestRaw,
+        'latestVersion': stripVTag(latestRaw),
+        'releaseNotes':  (release['body'] as String?) ?? '',
+        'apkUrl':        resolveApkUrl(release),
+        '_release':      release,
+      };
+    } catch (e) {
+      debugPrint('AppUpdateService: checkForUpdateSimple failed — $e');
+      return {'available': false};
+    }
   }
 
   static Future<void> _showUpdateDialog(
@@ -268,11 +303,4 @@ class AppUpdateService {
       ),
     );
   }
-}
-
-/// Holds version name + version code from `PackageInfo` / the Android channel.
-class _VersionInfo {
-  _VersionInfo({required this.versionName, required this.versionCode});
-  final String versionName;
-  final int versionCode;
 }
