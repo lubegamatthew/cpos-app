@@ -9,6 +9,7 @@ import 'pages/loading_page.dart';
 import 'pages/low_stock_page.dart';
 import 'pages/pos_page.dart';
 import 'pages/sales_page.dart';
+import 'pages/settings_page.dart';
 import 'db_helper.dart';
 import 'sales_bus.dart';
 
@@ -71,6 +72,7 @@ class MyApp extends StatelessWidget {
         '/dashboard': (context) => const POSDashboard(),
         '/lowStock': (context) => const LowStockPage(),
         '/categories': (context) => const CategoriesPage(),
+        '/settings': (context) => const SettingsPage(),
       },
     );
   }
@@ -722,7 +724,9 @@ _SidebarItem(
                    icon: Icons.settings_outlined,
                    title: 'Settings',
                    selected: false,
-                   onTap: () {},
+                   onTap: () {
+                     Navigator.pushNamed(context, '/settings');
+                   },
                  ),
               ],
             ),
