@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../db_helper.dart';
+import '../services/app_update_service.dart';
 
 class LoadingPage extends StatefulWidget {
   const LoadingPage({super.key});
@@ -34,7 +35,9 @@ class _LoadingPageState extends State<LoadingPage>
     _controller.forward();
 
     // Load data during animation (but don't store it since we're not using it)
-    _loadInitialData();
+    if (mounted) {
+      _loadInitialData();
+    }
   }
 
   Future<void> _loadInitialData() async {
@@ -45,7 +48,13 @@ class _LoadingPageState extends State<LoadingPage>
     } catch (e) {
       // If there's an error, continue anyway - the app will still work
     }
-    
+
+    // Check for app updates in the background once the frame is rendered
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      await AppUpdateService.checkForUpdate(context: context);
+    });
+
     // Navigate to dashboard after a short delay (just for animation)
     Future.delayed(const Duration(milliseconds: 1000), () {
       if (mounted) {
