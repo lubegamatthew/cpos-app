@@ -141,7 +141,7 @@ class DatabaseHelper {
       data_json  TEXT    NOT NULL,
       status     TEXT    NOT NULL DEFAULT 'pending',
       created_at TEXT    NOT NULL
-    )
+    );
     CREATE INDEX IF NOT EXISTS idx_sync_queue_status
       ON sync_queue (status);
   ''';
