@@ -5,34 +5,38 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class AppUpdateService {
-  /// GitHub repo: lubegamatthew/cpos-app
-  static const String _downloadUrl =
-      'https://github.com/lubegamatthew/cpos-app/releases/download/v1.0.0/possapp-v1.apk';
+  /// GitHub repo owner and name — change here if you fork/rename.
+  static const String _repoOwner = 'lubegamatthew';
+  static const String _repoName  = 'cpos-app';
+
+  /// Fallback guard URL (updated alongside each release).
+  static const String _fallbackUrl =
+      'https://github.com/$_repoOwner/$_repoName/releases/download/v1.0.4/app-release.apk';
 
   static String? _currentVersion;
 
   /// Returns the cached version string, or null if it hasn't been fetched yet.
   static String? get currentVersion => _currentVersion;
 
-  /// Returns the current app version, caching it.
+  /// Returns the current app version string, caching it.
   static Future<String> getCurrentVersionAsync() async {
     if (_currentVersion != null) return _currentVersion!;
     try {
       final pkg = await PackageInfo.fromPlatform();
       _currentVersion = '${pkg.version}+${pkg.buildNumber}';
     } catch (_) {
-      _currentVersion = '1.0.0+1'; // matches pubspec.yaml
+      _currentVersion = '1.0.0+1';   // matches pubspec.yaml
     }
     return _currentVersion!;
   }
 
-  /// Fetches the latest GitHub release for the CPOS app.
+  /// HTTP GET the latest GitHub release and return the decoded JSON body.
   static Future<Map<String, dynamic>?> _fetchLatestRelease() async {
     try {
       final resp = await http
           .get(
             Uri.parse(
-              'https://api.github.com/repos/lubegamatthew/cpos-app/releases/latest',
+              'https://api.github.com/repos/$_repoOwner/$_repoName/releases/latest',
             ),
             headers: {'Accept': 'application/vnd.github.v3+json'},
           )
@@ -42,12 +46,33 @@ class AppUpdateService {
         return jsonDecode(resp.body) as Map<String, dynamic>;
       }
     } catch (e) {
-      debugPrint('Failed to check for app updates: $e');
+      debugPrint('AppUpdateService: fetch failed — $e');
     }
     return null;
   }
 
-  /// Converts a version string like "1.2.3" to an integer for easy comparison.
+  /// Scans [release] assets for the first `.apk` file and returns its
+  /// `browser_download_url`. Falls back to [_fallbackUrl] if none found.
+  static String resolveApkUrl(Map<String, dynamic> release) {
+    final assets = release['assets'] as List?;
+    if (assets != null && assets.isNotEmpty) {
+      for (final a in assets) {
+        final name = (a['name'] as String?)?.toLowerCase() ?? '';
+        if (name.endsWith('.apk')) {
+          final url = a['browser_download_url'] as String?;
+          if (url != null && url.isNotEmpty) return url;
+        }
+      }
+      // No .apk extension match — take the first asset URL
+      final first = assets.first;
+      final url = first['browser_download_url'] as String?;
+      if (url != null && url.isNotEmpty) return url;
+    }
+    return _fallbackUrl;
+  }
+
+  /// Converts a dotted version string like "1.2.3" to an integer for
+  /// easy numeric comparison.  v-prefix and build metadata are stripped.
   static int _versionToInt(String version) {
     final parts = version.replaceAll(RegExp(r'[^0-9.]'), '').split('.');
     final numbers = parts.map((p) => int.tryParse(p) ?? 0).toList();
@@ -57,37 +82,45 @@ class AppUpdateService {
     return numbers[0] * 10000 + numbers[1] * 100 + numbers[2];
   }
 
-  /// Opens the APK download URL in the device's browser.
-  static Future<void> _launchUpdateUrl() async {
-    final uri = Uri.parse(_downloadUrl);
+  /// Opens the APK download URL in the system browser.
+  static Future<void> _launchUpdateUrl({String? url}) async {
+    final uri = Uri.parse(url ?? _fallbackUrl);
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
   }
 
-  /// Shows the update dialog and returns true when an update is available.
+  /// Checks whether a newer version is available on GitHub.
+  /// If [context] is supplied the update dialog is shown automatically.
+  /// Returns true when an update is available.
   static Future<bool> checkForUpdate({BuildContext? context}) async {
     try {
-      final raw = await getCurrentVersionAsync();
-      final currentVersionParts = raw.split('+').first;
-      final current = _versionToInt(currentVersionParts);
+      final raw          = await getCurrentVersionAsync();
+      final currentInt   = _versionToInt(raw.split('+').first);
+      final apkUrlRef    = <String?>[null];   // pass resolved URL to dialog
 
       final release = await _fetchLatestRelease();
       if (release == null) return false;
 
       final latestRaw = release['tag_name'] as String?;
       if (latestRaw == null) return false;
-      final latest = _versionToInt(latestRaw);
+      final latestInt = _versionToInt(latestRaw);
 
-      if (latest > current) {
+      if (latestInt > currentInt) {
         final notes = (release['body'] as String?) ?? '';
+        apkUrlRef[0] = resolveApkUrl(release);  // resolve once, share with dialog
         if (context != null && context.mounted) {
-          await _showUpdateDialog(context, latestRaw, notes);
+          await _showUpdateDialog(
+            context,
+            latestRaw,
+            notes,
+            apkUrl: apkUrlRef[0],
+          );
         }
         return true;
       }
     } catch (e) {
-      debugPrint('Update check failed: $e');
+      debugPrint('AppUpdateService: check failed — $e');
     }
     return false;
   }
@@ -95,12 +128,13 @@ class AppUpdateService {
   static Future<void> _showUpdateDialog(
     BuildContext context,
     String latestVersion,
-    String? releaseNotes,
-  ) {
+    String? releaseNotes, {
+    String? apkUrl,
+  }) {
     return showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
+      builder: (ctx) => AlertDialog(
         title: const Row(
           children: [
             Icon(Icons.system_update, color: Colors.blue, size: 28),
@@ -115,7 +149,7 @@ class AppUpdateService {
             children: [
               Text(
                 'A new version ($latestVersion) is available. '
-                'Please update to get the latest features and bug fixes.',
+                'Update now to get the latest features and bug fixes.',
               ),
               const SizedBox(height: 16),
               if (releaseNotes != null && releaseNotes.isNotEmpty)
@@ -138,13 +172,13 @@ class AppUpdateService {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () => Navigator.of(ctx).pop(),
             child: const Text('Later'),
           ),
           FilledButton.icon(
             onPressed: () async {
-              Navigator.of(context).pop();
-              await _launchUpdateUrl();
+              Navigator.of(ctx).pop();
+              await _launchUpdateUrl(url: apkUrl);
             },
             icon: const Icon(Icons.download),
             label: const Text('Update Now'),

@@ -16,6 +16,7 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _checkingVersion = false;
   bool _updateAvailable = false;
   String? _latestVersion;
+  Map<String, dynamic>? _latestRelease;   // holds the release JSON since last poll
   bool _downloading = false;
   double _downloadProgress = 0;
   String _statusText = '';
@@ -52,15 +53,22 @@ class _SettingsPageState extends State<SettingsPage> {
       final latestRaw = (release['tag_name'] as String?) ?? '';
       final latest = _versionToInt(latestRaw);
 
+      // Resolve the real APK download URL from the release assets
+      final apkUrl = AppUpdateService.resolveApkUrl(release);
+
       if (latest > current) {
         final notes = (release['body'] as String?) ?? '';
         setState(() {
           _updateAvailable = true;
           _latestVersion = latestRaw;
+          _latestRelease = release;   // keep for the download step
         });
-        await _showUpdateDialog(latestRaw, notes);
+        await _showUpdateDialog(latestRaw, notes, apkUrl: apkUrl);
       } else {
-        setState(() => _updateAvailable = false);
+        setState(() {
+          _updateAvailable = false;
+          _latestRelease = null;
+        });
         _showSnack('You\'re already on the latest version.');
       }
     } catch (e) {
@@ -85,6 +93,7 @@ class _SettingsPageState extends State<SettingsPage> {
             setState(() => _downloadProgress = received / total);
           }
         },
+        release: _latestRelease!,
       );
       if (mounted) {
         setState(() => _statusText = 'Installation starting…');
@@ -136,7 +145,11 @@ class _SettingsPageState extends State<SettingsPage> {
     return null;
   }
 
-  Future<void> _showUpdateDialog(String latestVersion, String? notes) async {
+  Future<void> _showUpdateDialog(
+    String latestVersion,
+    String? notes, {
+    String? apkUrl,
+  }) async {
     if (!mounted) return;
     return showDialog(
       context: context,
@@ -154,8 +167,9 @@ class _SettingsPageState extends State<SettingsPage> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('A new version ($latestVersion) is available. '
-                  'Update now for the latest features and bug fixes.'),
+              Text(
+                  'A new version ($latestVersion) is available. '
+                  'Update now to get the latest features and bug fixes.'),
               const SizedBox(height: 16),
               if (notes != null && notes.isNotEmpty)
                 Container(
@@ -179,7 +193,6 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
           FilledButton.icon(
             onPressed: () {
-              // Close confirmation dialog first, then start download
               if (mounted) Navigator.of(dialogContext).pop();
               _performUpdate();
             },
