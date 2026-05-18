@@ -7,23 +7,12 @@ import '../db_helper.dart' show DatabaseHelper;
 /// Base URL for the remote sync endpoint.
 const _baseUrl = 'https://chillonpos.is-great.net';
 
-/// Synchronises data between local SQLite and the remote server.
+/// Syncs data between local SQLite and the remote server.
 ///
-/// **Push step** – sends every `pending` row in `sync_queue` to
-/// `POST /api/sync.php`.  Success → row is marked `sent`;
-/// failure → row stays `pending` for a retry.
-///
-/// **Pull step** – requests records changed after `last_sync_timestamp`
-/// via `GET /api/sync.php?since=<timestamp>`.  Missing rows are inserted,
-/// stale rows are overwritten.
+/// 1. **Push** – sends all `pending` `sync_queue` rows to the server.
+/// 2. **Pull** – fetches records changed since `last_sync_timestamp`.
 class SyncService {
-  /// Runs a full push + pull cycle.
-  ///
-  /// [onStatus] fires intermediate status strings so the caller can surface
-  /// a live progress message.
-  ///
-  /// Returns `true` when any remote changes were applied locally; `false`
-  /// when the local DB was already in sync.
+  /// Full push + pull cycle.
   static Future<bool> sync({
     void Function(String message)? onStatus,
   }) async {
@@ -32,9 +21,8 @@ class SyncService {
     return changed;
   }
 
-  // ── PUSH ─────────────────────────────────────────────────────────────────
+  // ── PUSH ────────────────────────────────────────────────────────────────
 
-  /// POSTs every `pending` entity in `sync_queue` to the server.
   static Future<void> _pushLocalQueue({
     void Function(String message)? onStatus,
   }) async {
@@ -78,26 +66,22 @@ class SyncService {
 
     if (idsToMark.isNotEmpty) {
       await DatabaseHelper.instance.markAsSynced(idsToMark);
-      await DatabaseHelper.instance
-          .pruneSentQueue(olderThanDays: 30);
+      await DatabaseHelper.instance.pruneSentQueue(olderThanDays: 30);
       onStatus?.call('Pushed ${idsToMark.length} change(s) successfully.');
     }
 
     if (failures.isNotEmpty) {
       if (kDebugMode) {
-        for (final f in failures) {
-          debugPrint('Sync push failure: $f');
-        }
+        for (final f in failures) debugPrint('Sync push failure: $f');
       }
       onStatus?.call(
-        '${failures.length} change(s) could not be pushed — will retry next sync.',
+        '${failures.length} change(s) could not be pushed — will retry.',
       );
     }
   }
 
-  // ── PULL ─────────────────────────────────────────────────────────────────
+  // ── PULL ────────────────────────────────────────────────────────────────
 
-  /// GETs missing-or-stale records from the server.
   static Future<bool> _pullRemoteChanges({
     void Function(String message)? onStatus,
   }) async {
@@ -118,7 +102,7 @@ class SyncService {
       final resp = await get(uri).timeout(const Duration(seconds: 30));
 
       if (resp.statusCode != 200) {
-        onStatus?.call('Server returned HTTP ${resp.statusCode} during pull.');
+        onStatus?.call('Server error ${resp.statusCode} during pull.');
         return false;
       }
 
@@ -131,7 +115,6 @@ class SyncService {
     }
   }
 
-  /// Fans-out the server payload to each per-table upsert helper.
   static Future<bool> _applyRemotePayload(
     Map<String, dynamic> data, {
     void Function(String message)? onStatus,
@@ -141,12 +124,10 @@ class SyncService {
 
     for (final entry in data.entries) {
       if (entry.key == 'synced_at') continue;
-
       final list = (entry.value as List?)?.cast<Map<String, dynamic>>();
       if (list == null || list.isEmpty) continue;
 
-      var newCount = 0;
-      var updCount = 0;
+      int newCount = 0, updCount = 0;
 
       switch (entry.key) {
         case 'inventory':
@@ -177,22 +158,18 @@ class SyncService {
 
     if (totalChanged > 0) {
       final parts = <String>[];
-      byTable.forEach((table, c) => parts.add('$table: $c'));
+      byTable.forEach((t, c) => parts.add('$t: $c'));
       onStatus?.call(
-        'Synced $totalChanged record(s) from server ('
-        '${parts.join(', ')})',
+        'Synced $totalChanged record(s) from server (${parts.join(', ')})',
       );
     } else {
       onStatus?.call("You're already fully synced.");
     }
-
     return totalChanged > 0;
   }
 
   // ── PER-TABLE UPSERTS ────────────────────────────────────────────────────
 
-  /// Inserts or replaces each inventory row, differentiating insert/update
-  /// by checking local existence.
   static Future<(int, int)> _upsertInventory(
     List<Map<String, dynamic>> rows,
   ) async {
@@ -207,9 +184,7 @@ class SyncService {
         where: 'id IN ($ph)',
         whereArgs: ids,
       );
-      for (var r in hits) {
-        localIds.add(r['id'] as String);
-      }
+      for (final r in hits) localIds.add(r['id'] as String);
     }
 
     var inserted = 0;
@@ -245,9 +220,7 @@ class SyncService {
       );
     }
 
-    {
-      await batch.commit(noResult: true);
-    }
+    await batch.commit(noResult: true);
     return (inserted, updated);
   }
 
@@ -265,9 +238,7 @@ class SyncService {
         where: 'id IN ($ph)',
         whereArgs: ids,
       );
-      for (var r in hits) {
-        localIds.add(r['id'] as String);
-      }
+      for (final r in hits) localIds.add(r['id'] as String);
     }
 
     var inserted = 0;
@@ -297,9 +268,7 @@ class SyncService {
       );
     }
 
-    {
-      await batch.commit(noResult: true);
-    }
+    await batch.commit(noResult: true);
     return (inserted, updated);
   }
 
@@ -317,9 +286,7 @@ class SyncService {
         where: 'id IN ($ph)',
         whereArgs: ids,
       );
-      for (var r in hits) {
-        localIds.add(r['id'] as String);
-      }
+      for (final r in hits) localIds.add(r['id'] as String);
     }
 
     var inserted = 0;
@@ -354,9 +321,7 @@ class SyncService {
       );
     }
 
-    {
-      await batch.commit(noResult: true);
-    }
+    await batch.commit(noResult: true);
     return (inserted, updated);
   }
 
@@ -374,9 +339,7 @@ class SyncService {
         where: 'id IN ($ph)',
         whereArgs: ids,
       );
-      for (var r in hits) {
-        localIds.add(r['id'] as String);
-      }
+      for (final r in hits) localIds.add(r['id'] as String);
     }
 
     var inserted = 0;
@@ -413,9 +376,7 @@ class SyncService {
       );
     }
 
-    {
-      await batch.commit(noResult: true);
-    }
+    await batch.commit(noResult: true);
     return (inserted, updated);
   }
 }
