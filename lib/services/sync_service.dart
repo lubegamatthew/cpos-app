@@ -16,7 +16,11 @@ class SyncService {
   static Future<bool> sync({
     void Function(String message)? onStatus,
   }) async {
+    // Allow one new reconciliation pass this round.
+    _reconciledThisRound = false;
     await _pushLocalQueue(onStatus: onStatus);
+    // Guard against the user tapping Sync again for the same round.
+    _reconciledThisRound = true;
     final changed = await _pullRemoteChanges(onStatus: onStatus);
     return changed;
   }
@@ -26,6 +30,12 @@ class SyncService {
   static Future<void> _pushLocalQueue({
     void Function(String message)? onStatus,
   }) async {
+    // ── Reconcile: enqueue any local rows not yet tracked by sync_queue.
+    // This picks up hardcoded seed data, `insertAllInventoryItems` rows, and
+    // any other path that writes directly to SQLite without going through
+    // `insertOrUpdate` / `deleteRecord`.
+    await _reconcileDirtyRows(onStatus: onStatus);
+
     final pending = await DatabaseHelper.instance.getPendingQueue();
     if (pending.isEmpty) {
       onStatus?.call('No local changes to push.');
@@ -378,5 +388,101 @@ class SyncService {
 
     await batch.commit(noResult: true);
     return (inserted, updated);
+  }
+
+  // ── LOCAL → SYNC QUEUE RECONCILIATION ────────────────────────────────
+
+  /// Checks each core table for rows that have no matching `sync_queue` entry
+  /// yet and enqueues them as `action='insert'`.
+  ///
+  /// This picks up hardcoded seed data, `insertAllInventoryItems()` rows,
+  /// and any other path that writes directly to SQLite without going through
+  /// `insertOrUpdate` / `deleteRecord`.
+  ///
+  /// Runs at most *once per sync round* so subsequent rounds in the same
+  /// session never double-enqueue.
+  static bool _reconciledThisRound = false;
+
+  static Future<void> _reconcileDirtyRows({
+    void Function(String message)? onStatus,
+  }) async {
+    if (_reconciledThisRound) return;
+
+    // Map table → (column names, table alias).
+    // These match the real physical column names in the DB.
+    final schemas = <String, (List<String>, String)>{
+      'inventory': (
+        [
+          'id', 'name', 'categoryId', 'quantity', 'buyPrice', 'sellPrice',
+          'unit', 'description', 'createdAt',
+        ],
+        'inventory',
+      ),
+      'categories': (
+        ['id', 'name', 'description', 'createdAt'],
+        'categories',
+      ),
+      'sales': (
+        [
+          'id', 'customerName', 'customerPhone', 'totalAmount', 'totalProfit',
+          'paymentMethod', 'status', 'notes', 'createdAt',
+        ],
+        'sales',
+      ),
+      'sale_items': (
+        [
+          'id', 'saleId', 'inventoryId', 'itemName', 'quantity', 'buyPrice',
+          'sellPrice', 'totalCost', 'totalRevenue', 'profit', 'createdAt',
+        ],
+        'sale_items',
+      ),
+    };
+
+    int enqueued = 0;
+
+    for (final entry in schemas.entries) {
+      final table = entry.key;
+      final (columns, alias) = entry.value;
+
+      // Read every row in this table.
+      final db = await DatabaseHelper.instance.database;
+      final rows = await db.query(alias);
+
+      for (final row in rows) {
+        final rowId = row['id'] as String?;
+        if (rowId == null) continue;
+
+        // Skip if this row's id already appears in any sync_queue entry
+        // for this table.  EXISTS check on minified JSON ids is the
+        // cheapest producer-side guard we can get without a schema change.
+        final check = await db.query(
+          'sync_queue',
+          where: 'table_name = ? AND data_json LIKE ?',
+          whereArgs: [table, '%"id":"$rowId"%'],
+          limit: 1,
+        );
+        if (check.isNotEmpty) continue;
+
+        // Build a flat JSON map so the server receives standardised camelCase
+        // field names that it can recognise.
+        final payload = <String, dynamic>{};
+        for (final col in columns) {
+          final v = row[col];
+          if (v is num)      payload[col] = v.toDouble();
+          else if (v is int) payload[col] = v.toDouble();
+          else if (v is String) payload[col] = v;
+          else if (v is bool)   payload[col] = v;
+          else if (v != null)   payload[col] = v.toString();
+        }
+
+        await DatabaseHelper.instance.enqueueRow(table, 'insert', payload);
+        enqueued++;
+      }
+    }
+
+    if (enqueued > 0 && onStatus != null) {
+      onStatus('Found $enqueued local record(s) not yet on the server – '
+          'will push now.');
+    }
   }
 }

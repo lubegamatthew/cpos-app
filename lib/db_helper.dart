@@ -692,4 +692,18 @@ class DatabaseHelper {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_kLastSyncKey, iso8601);
   }
+
+  /// Enqueues a single row in `sync_queue` without making any changes to
+  /// the business table.
+  ///
+  /// [action] must be `'insert'`, `'update'` or `'delete'`.
+  /// [serverData] is serialised as `data_json` and stored as `status='pending'`.
+  /// Returns the new `sync_queue` row id.
+  Future<int> enqueueRow(
+    String table,
+    String action,
+    Map<String, dynamic> serverData,
+  ) async {
+    return await _enqueue(table, action, serverData);
+  }
 }
