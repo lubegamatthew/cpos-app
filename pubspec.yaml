@@ -2,7 +2,7 @@ name: cpos
 description: "Chillion Point Of Sale System."
 publish_to: 'none'
 
-version: 2.0.2
+version: 2.0.4
 
 environment:
   sdk: ^3.11.5

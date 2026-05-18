@@ -16,11 +16,9 @@ class SyncService {
   static Future<bool> sync({
     void Function(String message)? onStatus,
   }) async {
-    // Allow one new reconciliation pass this round.
-    _reconciledThisRound = false;
+    _reconciledThisRound = false;   // allow reconciliation this round
     await _pushLocalQueue(onStatus: onStatus);
-    // Guard against the user tapping Sync again for the same round.
-    _reconciledThisRound = true;
+    _reconciledThisRound = true;    // prevent double-enqueue this tap
     final changed = await _pullRemoteChanges(onStatus: onStatus);
     return changed;
   }
@@ -30,10 +28,9 @@ class SyncService {
   static Future<void> _pushLocalQueue({
     void Function(String message)? onStatus,
   }) async {
-    // ── Reconcile: enqueue any local rows not yet tracked by sync_queue.
-    // This picks up hardcoded seed data, `insertAllInventoryItems` rows, and
-    // any other path that writes directly to SQLite without going through
-    // `insertOrUpdate` / `deleteRecord`.
+    // Reconcile: enqueue any local rows not yet tracked by sync_queue.
+    // Catches seed data, `insertAllInventoryItems()` rows and every other
+    // path that writes directly to SQLite.
     await _reconcileDirtyRows(onStatus: onStatus);
 
     final pending = await DatabaseHelper.instance.getPendingQueue();
@@ -57,12 +54,23 @@ class SyncService {
           'data_json':  row['data_json'],
           'created_at': row['created_at'],
         };
+        final rawBody = jsonEncode(body);
+
+        debugPrint('[Sync push] queue_id=$qid '
+            'table=${row['table_name']} action=${row['action']} '
+            'payload_len=${rawBody.length}');
 
         final resp = await post(
           Uri.parse('$_baseUrl/api/sync.php'),
           headers: {'Content-Type': 'application/json'},
-          body: jsonEncode(body),
+          body: rawBody,
         ).timeout(const Duration(seconds: 30));
+
+        if (kDebugMode) {
+          debugPrint('[Sync push] queue_id=$qid '
+              'HTTP ${resp.statusCode} '
+              'body="${resp.body}"');
+        }
 
         if (resp.statusCode >= 200 && resp.statusCode < 300) {
           idsToMark.add(qid);
@@ -111,12 +119,26 @@ class SyncService {
 
       final resp = await get(uri).timeout(const Duration(seconds: 30));
 
+      debugPrint('[Sync pull] GET ${uri.path}?${uri.query} '
+          'HTTP ${resp.statusCode} '
+          'body="${resp.body}"');
+
       if (resp.statusCode != 200) {
-        onStatus?.call('Server error ${resp.statusCode} during pull.');
+        onStatus?.call('Server returned HTTP ${resp.statusCode} during pull.');
         return false;
       }
 
       final data = jsonDecode(resp.body) as Map<String, dynamic>;
+      if (kDebugMode) {
+        for (final k in data.keys) {
+          final v = data[k];
+          if (v is List) {
+            debugPrint('[Sync pull] key=$k → List(${v.length} items)');
+          } else {
+            debugPrint('[Sync pull] key=$k → $v');
+          }
+        }
+      }
       return await _applyRemotePayload(data, onStatus: onStatus);
     } catch (e) {
       if (kDebugMode) debugPrint('Sync pull error: $e');
@@ -170,7 +192,8 @@ class SyncService {
       final parts = <String>[];
       byTable.forEach((t, c) => parts.add('$t: $c'));
       onStatus?.call(
-        'Synced $totalChanged record(s) from server (${parts.join(', ')})',
+        'Synced $totalChanged record(s) from server ('
+        '${parts.join(', ')})',
       );
     } else {
       onStatus?.call("You're already fully synced.");
@@ -207,7 +230,7 @@ class SyncService {
       final payload = <String, dynamic>{
         'id': id,
         'name': row['name'] as String,
-        'category': row['category'] as String,
+        'categoryId': row['categoryId'] as String? ?? '',
         'quantity': (row['quantity'] as num?)?.toInt() ?? 0,
         'buyPrice': (row['buyPrice'] as num?)?.toDouble() ?? 0.0,
         'sellPrice': (row['sellPrice'] as num?)?.toDouble() ?? 0.0,
@@ -392,15 +415,13 @@ class SyncService {
 
   // ── LOCAL → SYNC QUEUE RECONCILIATION ────────────────────────────────
 
-  /// Checks each core table for rows that have no matching `sync_queue` entry
-  /// yet and enqueues them as `action='insert'`.
+  /// Scans each core table for rows whose `id` is not yet present in
+  /// `sync_queue` (for that table) and enqueues them.
   ///
-  /// This picks up hardcoded seed data, `insertAllInventoryItems()` rows,
-  /// and any other path that writes directly to SQLite without going through
-  /// `insertOrUpdate` / `deleteRecord`.
+  /// Catches: seed data, `insertAllInventoryItems()` rows, POS-sale rows,
+  /// and any other path that writes directly to SQLite.
   ///
-  /// Runs at most *once per sync round* so subsequent rounds in the same
-  /// session never double-enqueue.
+  /// Runs at most once per `sync()` call.
   static bool _reconciledThisRound = false;
 
   static Future<void> _reconcileDirtyRows({
@@ -408,80 +429,76 @@ class SyncService {
   }) async {
     if (_reconciledThisRound) return;
 
-    // Map table → (column names, table alias).
-    // These match the real physical column names in the DB.
-    final schemas = <String, (List<String>, String)>{
-      'inventory': (
-        [
-          'id', 'name', 'categoryId', 'quantity', 'buyPrice', 'sellPrice',
-          'unit', 'description', 'createdAt',
-        ],
-        'inventory',
-      ),
-      'categories': (
-        ['id', 'name', 'description', 'createdAt'],
-        'categories',
-      ),
-      'sales': (
-        [
-          'id', 'customerName', 'customerPhone', 'totalAmount', 'totalProfit',
-          'paymentMethod', 'status', 'notes', 'createdAt',
-        ],
-        'sales',
-      ),
-      'sale_items': (
-        [
-          'id', 'saleId', 'inventoryId', 'itemName', 'quantity', 'buyPrice',
-          'sellPrice', 'totalCost', 'totalRevenue', 'profit', 'createdAt',
-        ],
-        'sale_items',
-      ),
-    };
+    // Per-table column lists MUST match the physical DB column names.
+    const tables = [
+      ('inventory',  ['id','name','categoryId','quantity','buyPrice','sellPrice','unit','description','createdAt']),
+      ('categories', ['id','name','description','createdAt']),
+      ('sales',      ['id','customerName','customerPhone','totalAmount','totalProfit','paymentMethod','status','notes','createdAt']),
+      ('sale_items', ['id','saleId','inventoryId','itemName','quantity','buyPrice','sellPrice','totalCost','totalRevenue','profit','createdAt']),
+    ];
 
     int enqueued = 0;
+    final db = await DatabaseHelper.instance.database;
 
-    for (final entry in schemas.entries) {
-      final table = entry.key;
-      final (columns, alias) = entry.value;
+    for (final (String table, List<String> columns) in tables) {
+      // Step 1 – collect ids already tracked for this table.
+      final tracked = <String>{};
+      {
+        final rows = await db.query(
+          'sync_queue',
+          columns: ['data_json'],
+          where: 'table_name = ?',
+          whereArgs: [table],
+        );
+        for (final r in rows) {
+          final str = r['data_json'] as String?;
+          if (str != null) {
+            // Every data_json map we write contains "id":"<val>".
+            final m = RegExp(r'"id"\s*:\s*"([^"]+)"').firstMatch(str);
+            if (m != null) tracked.add(m.group(1)!);
+          }
+        }
+      }
 
-      // Read every row in this table.
-      final db = await DatabaseHelper.instance.database;
-      final rows = await db.query(alias);
+      // Step 2 – read every row in this table.
+      final rows = await db.query(table);
+      if (rows.isEmpty) continue;
 
+      // Step 3 – batch-insert untracked rows into sync_queue.
+      final batchIn = db.batch();
       for (final row in rows) {
         final rowId = row['id'] as String?;
-        if (rowId == null) continue;
+        if (rowId == null || tracked.contains(rowId)) continue;
 
-        // Skip if this row's id already appears in any sync_queue entry
-        // for this table.  EXISTS check on minified JSON ids is the
-        // cheapest producer-side guard we can get without a schema change.
-        final check = await db.query(
-          'sync_queue',
-          where: 'table_name = ? AND data_json LIKE ?',
-          whereArgs: [table, '%"id":"$rowId"%'],
-          limit: 1,
-        );
-        if (check.isNotEmpty) continue;
-
-        // Build a flat JSON map so the server receives standardised camelCase
-        // field names that it can recognise.
         final payload = <String, dynamic>{};
         for (final col in columns) {
           final v = row[col];
-          if (v is num)      payload[col] = v.toDouble();
+          if (v is num)   payload[col] = v.toDouble();
           else if (v is int) payload[col] = v.toDouble();
-          else if (v is String) payload[col] = v;
-          else if (v is bool)   payload[col] = v;
-          else if (v != null)   payload[col] = v.toString();
+          else if (v is bool) payload[col] = v;
+          else if (v != null) payload[col] = v.toString();
         }
 
-        await DatabaseHelper.instance.enqueueRow(table, 'insert', payload);
+        batchIn.insert(
+          'sync_queue',
+          {
+            'table_name': table,
+            'action':     'insert',
+            'data_json':  jsonEncode(payload),
+            'status':     'pending',
+            'created_at': DateTime.now().toIso8601String(),
+          },
+        );
         enqueued++;
+      }
+
+      if (enqueued > 0) {
+        await batchIn.commit(noResult: true);
       }
     }
 
     if (enqueued > 0 && onStatus != null) {
-      onStatus('Found $enqueued local record(s) not yet on the server – '
+      onStatus('Found $enqueued local record(s) not yet on the server — '
           'will push now.');
     }
   }
