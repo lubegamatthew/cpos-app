@@ -1,120 +1,154 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
-import 'package:dio/dio.dart';
+import 'package:http/http.dart' as http;
 import 'package:open_filex/open_filex.dart';
 import 'package:permission_handler/permission_handler.dart' as perm;
 import '../services/app_update_service.dart';
 
 /// In-app update service:
-/// 1. Optionally resolves the real APK URL from a GitHub release JSON
+/// 1. Resolves the APK URL from the GitHub release JSON
 /// 2. Requests storage permission
-/// 3. Downloads the APK to the public Downloads folder with byte progress
-/// 4. Launches Android's native package installer via Intent
+/// 3. Streams the APK download with byte-level progress
+/// 4. Launches the system APK installer
 class InAppUpdateService {
-  /// Downloads the APK and opens the system installer.
+  /// Downloads the APK to the Downloads folder and launches the installer.
   ///
-  /// Pass the [release] map from the GitHub API so the correct asset URL
-  /// is resolved automatically — no hard-coded filename or tag needed.
+  /// [release] — the GitHub release JSON map from the API call.
+  /// [onProgress] fires with `(bytesReceivedSoFar, totalBytes)` on each chunk.
   static Future<bool> downloadAndInstall({
     required void Function(int received, int total) onProgress,
     required Map<String, dynamic> release,
   }) async {
+    // ── Resolve URL from live release JSON ──────────────────────────────
     final String apkUrl = AppUpdateService.resolveApkUrl(release);
-
-    debugPrint('InAppUpdateService: downloading from $apkUrl');
+    debugPrint('[InAppUpdate] APK URL: $apkUrl');
 
     // ── 1. Storage permission ───────────────────────────────────────────
-    final storageGranted = await perm.Permission.storage.request().isGranted;
-    if (!storageGranted) {
+    debugPrint('[InAppUpdate] Requesting storage permission...');
+    final permStatus = await perm.Permission.storage.request();
+    if (!permStatus.isGranted) {
       throw InAppUpdateFailed(
-        'Storage permission is required to download the update.',
+        'Storage permission denied. '
+        'Allow it in Settings → Apps → CPOS → Permissions, then try again.',
       );
     }
+    debugPrint('[InAppUpdate] Storage permission: granted');
 
-    final apkFile = File('/storage/emulated/0/Download/possapp-v1.apk');
+    // ── 2. File paths ───────────────────────────────────────────────────
+    const finalFile = '/storage/emulated/0/Download/cpos-update.apk';
+    const tempFile  = '/storage/emulated/0/Download/cpos-update.apk.tmp';
+    final outFile   = File(finalFile);
+    final tmpFile   = File(tempFile);
+    final client    = http.Client();
 
-    // ── 2. Pre-flight: skip download if APK already present ────────────
-    if (await apkFile.exists()) {
-      final existingSize = await apkFile.length();
-      debugPrint('APK already exists on disk ($existingSize bytes), skipping download');
-      return await _launchInstaller(apkFile.path);
+    // ── 3. Already downloaded — launch installer directly ───────────────
+    if (await outFile.exists()) {
+      final size = await outFile.length();
+      debugPrint('[InAppUpdate] APK already on disk ($size bytes)');
+      return _launchInstaller(finalFile);
     }
 
-    // ── 3. Ensure Downloads directory exists ───────────────────────────
-    final downloadsDir = Directory('/storage/emulated/0/Download');
-    if (!await downloadsDir.exists()) {
-      await downloadsDir.create(recursive: true);
-    }
-
-    // ── 4. Download ────────────────────────────────────────────────────
-    final dio = Dio();
+    // ── 4. POST / GET with streaming response ───────────────────────────
+    int? fileTotal;
     try {
-      await dio.download(
-        apkUrl,
-        apkFile.path,
-        onReceiveProgress: (received, total) {
-          if (total > 0) onProgress(received, total);
-        },
-        options: Options(
-          headers: {'Accept': 'application/vnd.github.v3+json'},
-        ),
+      debugPrint('[InAppUpdate] Connecting to $apkUrl ...');
+      final response = await client.send(
+        http.Request('GET', Uri.parse(apkUrl))
+          ..headers['Accept'] = 'application/vnd.android.package-archive',
+      ).timeout(const Duration(seconds: 60));
+
+      if (response.statusCode != 200) {
+        throw InAppUpdateFailed(
+          'HTTP ${response.statusCode} — server rejected the download.',
+        );
+      }
+
+      fileTotal = response.contentLength;
+      debugPrint(
+        '[InAppUpdate] Connected. status=${response.statusCode} '
+        'size=${fileTotal ?? 'unknown'}',
       );
-    } on DioException catch (e) {
-      throw InAppUpdateFailed(_dioFriendlyError(e));
+
+      // ── 5. Stream → temp file with byte-level progress ───────────────
+      debugPrint('[InAppUpdate] Writing stream → $tempFile');
+      var bytesReceived = 0;
+      final sink = tmpFile.openWrite();
+
+      await for (final List<int> chunk in response.stream) {
+        sink.add(chunk);
+        bytesReceived += chunk.length;
+        onProgress(bytesReceived, fileTotal ?? bytesReceived);
+      }
+
+      await sink.close();
+      debugPrint('[InAppUpdate] Stream complete. received=$bytesReceived bytes');
+    } on TimeoutException catch (e) {
+      debugPrint('[InAppUpdate] Timeout: $e');
+      throw InAppUpdateFailed('Download timed out. '
+          'Check your internet connection and try again.');
+    } on SocketException catch (e) {
+      debugPrint('[InAppUpdate] SocketException: $e');
+      throw InAppUpdateFailed('Network error ($e).');
+    } on FileSystemException catch (e) {
+      debugPrint('[InAppUpdate] FileSystemException: $e');
+      throw InAppUpdateFailed('Cannot save APK ($e). '
+          'Free up storage and try again.');
     } catch (e) {
+      debugPrint('[InAppUpdate] Download error: $e (${e.runtimeType})');
       throw InAppUpdateFailed('Download failed: $e');
+    } finally {
+      client.close();
     }
 
-    final fileSize = await apkFile.length();
-    debugPrint('Download complete: $fileSize bytes');
+    // ── 6. Validate temp file before renaming ───────────────────────────
+    final tmpLength = await tmpFile.length();
+    debugPrint('[InAppUpdate] Temp file size: $tmpLength bytes');
 
-    // ── 5. Open system APK installer ───────────────────────────────────
-    return await _launchInstaller(apkFile.path);
+    if (tmpLength == 0) {
+      debugPrint('[InAppUpdate] ERROR — downloaded file is empty');
+      throw InAppUpdateFailed(
+        'Downloaded file is empty. Check your internet and try again.',
+      );
+    }
+
+    // Rename only after download is fully verified
+    await tmpFile.rename(finalFile);
+    debugPrint('[InAppUpdate] Saved: $finalFile (${await outFile.length()} bytes)');
+
+    // ── 7. Launch APK installer ─────────────────────────────────────────
+    debugPrint('[InAppUpdate] Launching installer...');
+    return _launchInstaller(finalFile);
   }
 
-  /// Launches the APK file using the `apk` MIME type so Android routes
-  /// directly to the package installer (not a file browser).
+  /// Opens the APK file so Android launches the package installer.
   static Future<bool> _launchInstaller(String apkPath) async {
+    debugPrint('[InAppUpdate] _launchInstaller: $apkPath');
+
+    // Try with APK MIME type first
     final result = await OpenFilex.open(
       apkPath,
       type: 'application/vnd.android.package-archive',
     );
-    debugPrint('OpenFilex [MIME]  type=${result.type}  msg=${result.message}');
+    debugPrint('[InAppUpdate] OpenFilex [MIME] → type=${result.type}  msg=${result.message}');
 
     if (result.type == ResultType.done) return true;
 
-    // Retry without explicit MIME in case the device rejects it
-    final retry = await OpenFilex.open(apkPath);
-    debugPrint('OpenFilex [retry]  type=${retry.type}  msg=${retry.message}');
-    if (retry.type == ResultType.done) return true;
+    // Plain open — no explicit type
+    final plain = await OpenFilex.open(apkPath);
+    debugPrint('[InAppUpdate] OpenFilex [plain] → type=${plain.type}  msg=${plain.message}');
+
+    if (plain.type == ResultType.done) return true;
 
     throw InAppUpdateFailed(
-      'Could not start the installer. APK saved at: $apkPath\n'
-      'Error: ${retry.message}',
+      'Installer did not open. The APK is saved at:\n$apkPath\n'
+      'Error: ${plain.message}',
     );
-  }
-
-  /// Human-friendly error strings for Dio exceptions.
-  static String _dioFriendlyError(DioException e) {
-    switch (e.type) {
-      case DioExceptionType.connectionError:
-        return 'No internet connection.';
-      case DioExceptionType.connectionTimeout:
-        return 'Connection timed out.';
-      case DioExceptionType.receiveTimeout:
-        return 'Download timed out.';
-      default:
-        break;
-    }
-    if (e.response != null) {
-      return 'HTTP ${e.response?.statusCode}.';
-    }
-    return e.message ?? 'Unknown download error.';
   }
 }
 
-/// Thrown by [InAppUpdateService] when the download or install step fails
-/// so callers can present a friendly dialog instead of a stack trace.
+/// Thrown by [InAppUpdateService] when download or install fails.
+/// The [message] always includes a user-friendly explanation.
 class InAppUpdateFailed implements Exception {
   InAppUpdateFailed(this.message);
   final String message;
