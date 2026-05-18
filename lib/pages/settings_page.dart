@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../services/app_update_service.dart';
 import '../services/in_app_update_service.dart';
+import '../services/sync_service.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -17,6 +19,8 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _downloading = false;
   double _downloadProgress = 0;
   String _statusText = '';
+  bool _syncing = false;
+  String _syncMessage = '';
 
   @override
   void initState() {
@@ -25,13 +29,11 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<void> _loadVersion() async {
-    await AppUpdateService.getCurrentVersionAsync();  // caches real version
+    await AppUpdateService.getCurrentVersionAsync();
     if (!mounted) return;
     setState(() => _version = AppUpdateService.getVersionName());
   }
 
-  /// Step 1 — polls GitHub and shows the update confirmation dialog.
-  /// Delegates entirely to AppUpdateService — no duplicate API calls.
   Future<void> _checkForUpdate() async {
     setState(() {
       _checkingVersion = true;
@@ -51,13 +53,12 @@ class _SettingsPageState extends State<SettingsPage> {
       return;
     }
 
-    // Update available — show the stripped version and dialog.
     final latest       = (result['latestVersion'] as String?) ?? '';
     final releaseNotes = (result['releaseNotes'] as String?) ?? '';
 
     setState(() {
       _updateAvailable = true;
-      _latestVersion   = latest;   // already stripped: "1.0.7"
+      _latestVersion   = latest;
     });
 
     if (mounted) {
@@ -65,7 +66,6 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
-  /// Step 2 — downloads the APK, shows live progress, then launches the installer.
   Future<void> _performUpdate() async {
     setState(() {
       _downloading = true;
@@ -73,7 +73,6 @@ class _SettingsPageState extends State<SettingsPage> {
       _statusText = 'Downloading update…';
     });
 
-    // Re-fetch release metadata so we have the exact APK URL
     final result = await AppUpdateService.checkForUpdateSimple();
     final releaseMap = result['_release'] as Map<String, dynamic>;
 
@@ -93,7 +92,7 @@ class _SettingsPageState extends State<SettingsPage> {
       if (mounted) {
         debugPrint('Update failed: ${e.message}');
         if (e.message.contains('Installer could not open')) {
-          _showSnack(e.message); // already has the file path
+          _showSnack(e.message);
         } else {
           _showCloseDialog('Update Failed', e.message);
         }
@@ -166,10 +165,7 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  /// Silently close the update confirmation dialog without an await.
   void _dismissUpdateDialog() {
-    // maybePop returns Future<bool>; ignore the bool result entirely.
-    // If no dialog is open, maybePop returns false — that's fine.
     if (mounted) {
       Navigator.maybePop(context).ignore();
     }
@@ -196,6 +192,33 @@ class _SettingsPageState extends State<SettingsPage> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
     );
+  }
+
+  Future<void> _sync() async {
+    if (_syncing) return;
+    setState(() {
+      _syncing    = true;
+      _syncMessage = 'Starting sync…';
+    });
+
+    try {
+      final changed = await SyncService.sync(
+        onStatus: (text) {
+          if (mounted) setState(() => _syncMessage = text);
+        },
+      );
+      if (mounted) {
+        setState(() => _syncMessage = changed
+            ? 'Sync complete — remote changes applied.'
+            : 'Sync complete — everything is already up to date.');
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _syncMessage = 'Sync failed: $e');
+      }
+    } finally {
+      if (mounted) setState(() => _syncing = false);
+    }
   }
 
   @override
@@ -354,8 +377,7 @@ class _SettingsPageState extends State<SettingsPage> {
                                         alignment: Alignment.centerLeft,
                                         child: Padding(
                                           padding: const EdgeInsets.only(
-                                            bottom: 6,
-                                            left: 4,
+                                            bottom: 6, left: 4,
                                           ),
                                           child: Text(
                                             'Downloading… '
@@ -388,6 +410,79 @@ class _SettingsPageState extends State<SettingsPage> {
                                           : 'Check for Update',
                                     ),
                                   ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // ── Sync card ──────────────────────────────────────────────────
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            _syncing
+                                ? Icons.sync
+                                : Icons.cloud_sync_outlined,
+                            color: _syncing
+                                ? Theme.of(context).colorScheme.primary
+                                : Colors.orange,
+                            size: 24,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              'Sync Data',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleMedium
+                                  ?.copyWith(fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        _syncMessage.isNotEmpty
+                            ? _syncMessage
+                            : 'Push local changes to the server and pull '
+                                'remote records that are missing locally.',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
+                            ),
+                      ),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        child: _syncing
+                            ? const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  ),
+                                  SizedBox(width: 12),
+                                  Text('Syncing…'),
+                                ],
+                              )
+                            : FilledButton.icon(
+                                onPressed: _sync,
+                                icon: const Icon(Icons.sync),
+                                label: const Text('Sync Now'),
+                              ),
                       ),
                     ],
                   ),
