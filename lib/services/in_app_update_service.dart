@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:open_filex/open_filex.dart';
-import 'package:permission_handler/permission_handler.dart' as perm;
+import 'package:path_provider/path_provider.dart' show getExternalStorageDirectory;
 import '../services/app_update_service.dart';
 
 /// In-app update service:
@@ -25,28 +25,31 @@ class InAppUpdateService {
     debugPrint('[InAppUpdate] APK URL: $apkUrl');
 
     // ── 1. Storage permission ───────────────────────────────────────────
-    debugPrint('[InAppUpdate] Requesting storage permission...');
-    final permStatus = await perm.Permission.storage.request();
-    if (!permStatus.isGranted) {
-      throw InAppUpdateFailed(
-        'Storage permission denied. '
-        'Allow it in Settings → Apps → CPOS → Permissions, then try again.',
-      );
-    }
-    debugPrint('[InAppUpdate] Storage permission: granted');
+    // No runtime permission needed: path_provider gives us the
+    // app-managed directory where the app can always read and write.
+    debugPrint('[InAppUpdate] Using app-managed download directory.');
 
     // ── 2. File paths ───────────────────────────────────────────────────
-    const finalFile = '/storage/emulated/0/Download/cpos-update.apk';
-    const tempFile  = '/storage/emulated/0/Download/cpos-update.apk.tmp';
-    final outFile   = File(finalFile);
-    final tmpFile   = File(tempFile);
+    // Use the app-managed public Downloads folder so we don't need any
+    // runtime storage permissions.  Falls back to a compiled-in path if
+    // path_provider returns null (should never happen on a real device).
+    final externalDir = await getExternalStorageDirectory();
+    final downloadsDir = externalDir != null
+        ? Directory('${externalDir.path}/Download')
+        : Directory('/storage/emulated/0/Download');
+    await downloadsDir.create(recursive: true);
+
+    const finalFileName = 'cpos-update.apk';
+    const tempFileName  = 'cpos-update.apk.tmp';
+    final downloadFile   = File('${downloadsDir.path}/$finalFileName');
+    final downloadTmpFile = File('${downloadsDir.path}/$tempFileName');
     final client    = http.Client();
 
     // ── 3. Already downloaded — launch installer directly ───────────────
-    if (await outFile.exists()) {
-      final size = await outFile.length();
+    if (await downloadFile.exists()) {
+      final size = await downloadFile.length();
       debugPrint('[InAppUpdate] APK already on disk ($size bytes)');
-      return _launchInstaller(finalFile);
+      return _launchInstaller(downloadFile.path);
     }
 
     // ── 4. POST / GET with streaming response ───────────────────────────
@@ -71,9 +74,9 @@ class InAppUpdateService {
       );
 
       // ── 5. Stream → temp file with byte-level progress ───────────────
-      debugPrint('[InAppUpdate] Writing stream → $tempFile');
+      debugPrint('[InAppUpdate] Writing stream → ${downloadTmpFile.path}');
       var bytesReceived = 0;
-      final sink = tmpFile.openWrite();
+      final sink = downloadTmpFile.openWrite();
 
       await for (final List<int> chunk in response.stream) {
         sink.add(chunk);
@@ -82,7 +85,9 @@ class InAppUpdateService {
       }
 
       await sink.close();
-      debugPrint('[InAppUpdate] Stream complete. received=$bytesReceived bytes');
+      debugPrint(
+        '[InAppUpdate] Stream complete. received=$bytesReceived bytes',
+      );
     } on TimeoutException catch (e) {
       debugPrint('[InAppUpdate] Timeout: $e');
       throw InAppUpdateFailed('Download timed out. '
@@ -102,7 +107,7 @@ class InAppUpdateService {
     }
 
     // ── 6. Validate temp file before renaming ───────────────────────────
-    final tmpLength = await tmpFile.length();
+    final tmpLength = await downloadTmpFile.length();
     debugPrint('[InAppUpdate] Temp file size: $tmpLength bytes');
 
     if (tmpLength == 0) {
@@ -113,12 +118,15 @@ class InAppUpdateService {
     }
 
     // Rename only after download is fully verified
-    await tmpFile.rename(finalFile);
-    debugPrint('[InAppUpdate] Saved: $finalFile (${await outFile.length()} bytes)');
+    await downloadTmpFile.rename(downloadFile.path);
+    debugPrint(
+      '[InAppUpdate] Saved: ${downloadFile.path} '
+      '(${await downloadFile.length()} bytes)',
+    );
 
     // ── 7. Launch APK installer ─────────────────────────────────────────
     debugPrint('[InAppUpdate] Launching installer...');
-    return _launchInstaller(finalFile);
+    return _launchInstaller(downloadFile.path);
   }
 
   /// Opens the APK file so Android launches the package installer.

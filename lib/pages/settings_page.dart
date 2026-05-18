@@ -26,12 +26,26 @@ class _SettingsPageState extends State<SettingsPage> {
   void initState() {
     super.initState();
     _loadVersion();
+    _loadLatestVersion();
   }
 
   Future<void> _loadVersion() async {
     await AppUpdateService.getCurrentVersionAsync();
     if (!mounted) return;
     setState(() => _version = AppUpdateService.getVersionName());
+  }
+
+  Future<void> _loadLatestVersion() async {
+    try {
+      final result = await AppUpdateService.checkForUpdateSimple();
+      if (!mounted) return;
+      setState(() {
+        _latestVersion   = (result['latestVersion'] as String?) ?? 'Unknown';
+        _updateAvailable = result['available'] as bool? ?? false;
+      });
+    } catch (e) {
+      debugPrint('Failed to load latest version: $e');
+    }
   }
 
   Future<void> _checkForUpdate() async {
