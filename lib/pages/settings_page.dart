@@ -1,6 +1,6 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'dart:convert';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/app_update_service.dart';
 
@@ -35,7 +35,7 @@ class _SettingsPageState extends State<SettingsPage> {
     setState(() => _checking = true);
     try {
       final currentRaw = await AppUpdateService.getCurrentVersionAsync();
-      final current = _versionToInt(currentRaw.split('+').first);
+      final versionToInt = _versionToInt(currentRaw.split('+').first);
 
       final release = await _fetchLatestRelease();
       if (release == null) {
@@ -43,23 +43,16 @@ class _SettingsPageState extends State<SettingsPage> {
         return;
       }
 
-      final latestRaw = release['tag_name'] as String?;
-      if (latestRaw == null) {
-        _showSnack('Invalid release data.');
-        return;
-      }
-
+      final latestRaw = (release['tag_name'] as String?) ?? '';
       final latest = _versionToInt(latestRaw);
 
-      if (latest > current) {
+      if (latest > versionToInt) {
         final notes = (release['body'] as String?) ?? '';
         setState(() {
           _updateAvailable = true;
           _latestVersion = latestRaw;
         });
-        if (mounted) {
-          await _showUpdateDialog(latestRaw, notes);
-        }
+        await _showUpdateDialog(latestRaw, notes);
       } else {
         setState(() => _updateAvailable = false);
         if (mounted) _showSnack('You\'re already on the latest version.');
@@ -95,7 +88,7 @@ class _SettingsPageState extends State<SettingsPage> {
         return jsonDecode(resp.body) as Map<String, dynamic>;
       }
     } catch (e) {
-      debugPrint('Failed to check for app updates: $e');
+      debugPrint('API error: $e');
     }
     return null;
   }
@@ -178,7 +171,6 @@ class _SettingsPageState extends State<SettingsPage> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // ── App Info card ────────────────────────────────────────────────
           Card(
             child: Padding(
               padding: const EdgeInsets.all(20),
@@ -191,8 +183,7 @@ class _SettingsPageState extends State<SettingsPage> {
                         width: 56,
                         height: 56,
                         decoration: BoxDecoration(
-                          color:
-                              Theme.of(context).colorScheme.primaryContainer,
+                          color: Theme.of(context).colorScheme.primaryContainer,
                           borderRadius: BorderRadius.circular(14),
                         ),
                         child: Icon(
@@ -233,10 +224,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   const SizedBox(height: 12),
                   _buildInfoRow('Version', _version),
                   const SizedBox(height: 8),
-                  _buildInfoRow(
-                    'Latest Release',
-                    _latestVersion ?? 'Unknown',
-                  ),
+                  _buildInfoRow('Latest Release', _latestVersion ?? 'Unknown'),
                 ],
               ),
             ),
@@ -244,7 +232,6 @@ class _SettingsPageState extends State<SettingsPage> {
 
           const SizedBox(height: 16),
 
-          // ── Update card ──────────────────────────────────────────────────
           Card(
             color: _updateAvailable
                 ? Theme.of(context).colorScheme.primaryContainer
@@ -257,7 +244,9 @@ class _SettingsPageState extends State<SettingsPage> {
                   Row(
                     children: [
                       Icon(
-                        _updateAvailable ? Icons.system_update : Icons.verified,
+                        _updateAvailable
+                            ? Icons.system_update
+                            : Icons.check_circle,
                         color: _updateAvailable
                             ? Theme.of(context).colorScheme.primary
                             : Colors.green,
@@ -302,15 +291,25 @@ class _SettingsPageState extends State<SettingsPage> {
                               child: CircularProgressIndicator(),
                             ),
                           )
-                        : FilledButton.icon(
+                        : ElevatedButton.icon(
                             onPressed: _checkForUpdate,
                             icon: Icon(
                               _updateAvailable
                                   ? Icons.download
-                                  : Icons.refresh,
+                                  : Icons.refresh_outlined,
                             ),
                             label: Text(
-                              _updateAvailable ? 'Update Now' : 'Check for Update',
+                              _updateAvailable
+                                  ? 'Update Now'
+                                  : 'Check for Update',
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: _updateAvailable
+                                  ? null
+                                  : Colors.green,
+                              foregroundColor: _updateAvailable
+                                  ? null
+                                  : Colors.white,
                             ),
                           ),
                   ),
@@ -321,7 +320,6 @@ class _SettingsPageState extends State<SettingsPage> {
 
           const SizedBox(height: 16),
 
-          // ── Misc settings ────────────────────────────────────────────────
           _SettingsTile(
             icon: Icons.language_outlined,
             title: 'Language',
@@ -357,9 +355,10 @@ class _SettingsPageState extends State<SettingsPage> {
         ),
         Text(
           value,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
+          style: Theme.of(context)
+              .textTheme
+              .bodyMedium
+              ?.copyWith(fontWeight: FontWeight.w600),
         ),
       ],
     );
