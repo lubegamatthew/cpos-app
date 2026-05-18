@@ -2,11 +2,13 @@ package com.example.cpos
 
 import android.content.Context
 import android.content.pm.PackageInfo
-import dev.fluttercommunity.plus.packageinfo.PackageInfoPlugin
+import android.content.pm.PackageManager
+import android.os.Build
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
-import io.flutter.embedding.engine.plugins.shim.ShimPluginRegistry
 import io.flutter.plugin.common.MethodChannel
+import io.flutter.plugin.common.MethodChannel.MethodCallHandler
+import io.flutter.plugin.common.MethodChannel.Result
 
 class MainActivity : FlutterActivity() {
     companion object {
@@ -14,51 +16,46 @@ class MainActivity : FlutterActivity() {
     }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
-        // 1. Manually register package_info_plus (FlutterPlugin v2)
-        //    super.configureFlutterEngine() doesn't auto-register plugins
-        //    when configureFlutterEngine is overridden in older toolchains.
-        PackageInfoPlugin().apply {
-            onAttachedToEngine(flutterEngine)
-        }
+        super.configureFlutterEngine(flutterEngine)
 
-        // 2. Custom method channel — reads versionName / versionCode
-        //    directly from the installed APK's PackageInfo (0-plugin fallback).
+        // Custom method channel — reads versionName / versionCode directly
+        // from the APK manifest via PackageManager.
+        // On Android < TIRAMISU use deprecated API (0 flag).
+        // On Android >= P use longVersionCode, else versionCode.
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, VERSION_CHANNEL)
-            .setMethodCallHandler { call, result ->
-                when (call.method) {
-                    "getVersionInfo" -> {
-                        try {
-                            val pkgInfo: PackageInfo =
-                                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-                                    packageManager.getPackageInfo(
-                                        packageName,
-                                        PackageInfo.PackageInfoFlags.of(0),
-                                    )
-                                } else {
-                                    @Suppress("DEPRECATION")
-                                    packageManager.getPackageInfo(packageName, 0)
-                                }
-
-                            val versionCode = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
-                                pkgInfo.longVersionCode
-                            } else {
-                                @Suppress("DEPRECATION")
-                                pkgInfo.versionCode.toLong()
-                            }
-
-                            result.success(
-                                mapOf(
-                                    "versionName"  to (pkgInfo.versionName ?: ""),
-                                    "versionCode"  to versionCode,
-                                )
-                            )
-                        } catch (e: Exception) {
-                            result.error("UNAVAILABLE", e.message, null)
-                        }
-                    }
-                    else -> result.notImplemented()
+            .setMethodCallHandler(MethodCallHandler { call, result ->
+                if (call.method != "getVersionInfo") {
+                    result.notImplemented()
+                    return@MethodCallHandler
                 }
-            }
-        }
+
+                try {
+                    val pkgInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        packageManager.getPackageInfo(
+                            packageName,
+                            0,   // GET_META_DATA = 0; safe on all API levels
+                        )
+                    } else {
+                        @Suppress("DEPRECATION")
+                        packageManager.getPackageInfo(packageName, 0)
+                    }
+
+                    @Suppress("DEPRECATION")
+                    val versionCode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                        pkgInfo.longVersionCode
+                    } else {
+                        pkgInfo.versionCode.toLong()
+                    }
+
+                    result.success(
+                        mapOf(
+                            "versionName" to (pkgInfo.versionName ?: ""),
+                            "versionCode" to versionCode,
+                        )
+                    )
+                } catch (e: Exception) {
+                    result.error("UNAVAILABLE", e.message, null)
+                }
+            })
     }
 }
