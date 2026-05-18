@@ -1,34 +1,47 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:permission_handler/permission_handler.dart' as perm;
 
+/// In-app update service:
+/// 1. Requests storage permission
+/// 2. Downloads the APK to the public Downloads folder with byte progress
+/// 3. Launches Android's native package installer via Intent
 class InAppUpdateService {
   static const String _downloadUrl =
       'https://github.com/lubegamatthew/cpos-app/releases/download/v1.0.0/possapp-v1.apk';
 
-  /// Downloads the APK and launches the installer, reporting progress via [onProgress].
-  /// Returns true when the installer was successfully launched.
+  /// Downloads the APK and opens the system installer.
+  /// [onProgress] is called with [received] / [total] on each byte chunk.
   static Future<bool> downloadAndInstall({
     required void Function(int received, int total) onProgress,
   }) async {
-    // 1. Storage permission (needed to write the APK to external storage)
+    // ── 1. Storage permission ───────────────────────────────────────────
     final storageGranted = await perm.Permission.storage.request().isGranted;
     if (!storageGranted) {
-      throw 'Storage permission is required to download and install the update.';
+      throw InAppUpdateFailed(
+        'Storage permission is required to download the update.',
+      );
     }
 
-    // 2. Determine APK save path in the public Downloads folder
-    final Directory downloadsDir = Directory(
+    // ── 2. Pre-flight: check APK already downloaded ────────────────────
+    final apkFile = File('/storage/emulated/0/Download/possapp-v1.apk');
+    if (await apkFile.exists()) {
+      final existingSize = await apkFile.length();
+      debugPrint('APK already exists ($existingSize bytes), skipping download');
+      return await _launchInstaller(apkFile.path);
+    }
+
+    // ── 3. Ensure the Downloads directory exists ───────────────────────
+    final downloadsDir = Directory(
       '/storage/emulated/0/Download',
     );
     if (!await downloadsDir.exists()) {
       await downloadsDir.create(recursive: true);
     }
 
-    final apkFile = File('${downloadsDir.path}/possapp-v1.apk');
-
-    // 3. Download with Dio (shows real byte-level progress)
+    // ── 4. Download APK ────────────────────────────────────────────────
     final dio = Dio();
     try {
       await dio.download(
@@ -37,47 +50,60 @@ class InAppUpdateService {
         onReceiveProgress: (received, total) {
           if (total > 0) onProgress(received, total);
         },
-        options: Options(
-          headers: {'Accept': 'application/vnd.github.v3+json'},
-        ),
+        options: Options(headers: {'Accept': 'application/vnd.github.v3+json'}),
       );
     } on DioException catch (e) {
-      throw 'Download failed: ${_friendlyHttpError(e)}';
+      throw InAppUpdateFailed(_dioError(e));
     } catch (e) {
-      throw 'Download failed: $e';
+      throw InAppUpdateFailed('Download failed: $e');
     }
 
-    // 4. Open the APK with the system package installer
-    final result = await OpenFilex.open(apkFile.path);
+    debugPrint('Download complete: ${await apkFile.length()} bytes');
+    return await _launchInstaller(apkFile.path);
+  }
+
+  /// Opens the APK using the correct file-type MIME so Android routes
+  /// straight to the package installer rather than an arbitrary file viewer.
+  static Future<bool> _launchInstaller(String apkPath) async {
+    // `application/vnd.android.package-archive` is the registered MIME for .apk
+    final result = await OpenFilex.open(
+      apkPath,
+      type: 'application/vnd.android.package-archive',
+    );
+
+    debugPrint('OpenFilex result type: ${result.type} message: ${result.message}');
 
     if (result.type == ResultType.done) {
       return true;
     }
 
-    // Fallback: if direct open failed, try the known concept
-    try {
-      if (result.type == ResultType.fileNotFound && await apkFile.exists()) {
-        throw 'Installer could not open the file. Try installing manually from: ${apkFile.path}';
-      }
-    } catch (_) {}
+    // Try a plain intent without specifying intent-type
+    final result2 = await OpenFilex.open(apkPath);
+    if (result2.type == ResultType.done) {
+      return true;
+    }
 
-    throw 'Could not launch the installer: ${result.message}. '
-        'The APK was saved to: ${apkFile.path}';
+    throw InAppUpdateFailed(
+      'Could not open the APK installer. '
+      'The APK was saved to: $apkPath\n'
+      'Error: ${result2.message}',
+    );
   }
 
-  static String _friendlyHttpError(DioException e) {
-    if (e.type == DioExceptionType.connectionError) {
-      return 'No internet connection.';
-    }
-    if (e.type == DioExceptionType.connectionTimeout) {
-      return 'Connection timed out.';
-    }
-    if (e.type == DioExceptionType.receiveTimeout) {
-      return 'Download timed out.';
-    }
-    if (e.response != null) {
-      return 'HTTP ${e.response?.statusCode ?? 'error'}.';
-    }
+  static String _dioError(DioException e) {
+    if (e.type == DioExceptionType.connectionError) return 'No internet.';
+    if (e.type == DioExceptionType.connectionTimeout) return 'Connection timed out.';
+    if (e.type == DioExceptionType.receiveTimeout) return 'Download timed out.';
+    if (e.response != null) return 'HTTP ${e.response?.statusCode}.';
     return e.message ?? 'Unknown error.';
   }
+}
+
+/// Thrown by [InAppUpdateService] when the download or install step fails.
+class InAppUpdateFailed implements Exception {
+  InAppUpdateFailed(this.message);
+  final String message;
+
+  @override
+  String toString() => 'InAppUpdateFailed: $message';
 }

@@ -91,10 +91,16 @@ class _SettingsPageState extends State<SettingsPage> {
       }
     } on InAppUpdateFailed catch (e) {
       if (mounted) {
-        _showCloseDialog('Update Failed', e.message);
+        debugPrint('Update failed: ${e.message}');
+        if (e.message.contains('Installer could not open')) {
+          _showSnack(e.message); // already has the file path
+        } else {
+          _showCloseDialog('Update Failed', e.message);
+        }
       }
     } catch (e) {
       if (mounted) {
+        debugPrint('Update error: $e');
         _showCloseDialog('Update Failed', e.toString());
       }
     } finally {
