@@ -1,7 +1,30 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- ═══ REQUIRED: allows HTTP / network calls (update checker, url_launcher) ═══ -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- ═══ Network ═══ -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!-- ═══ Storage: write APK to public Downloads folder ═══
+         maxSdkVersion=28  → Android 9 (API 28) and below
+         READ_EXTERNAL_STORAGE covers Android 13 (API 33) read access.
+         For Android 10–12 (API 29–32) Write Access is handled by
+         scoped-storage via MediaStore (no permission needed) when saving
+         to the public Downloads directory.                                        -->
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="28" />
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+
+    <!-- ═══ Android 13+ (API 33) — can read downloaded media ═══ -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+
+    <!-- ═══ Android 8+ (API 26) — required to install APKs from unknown sources ═══ -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <application
         android:label="cpos"
