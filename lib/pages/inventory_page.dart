@@ -36,7 +36,7 @@ class _InventoryPageState extends State<InventoryPage> {
     }
     distinct.sort();
     distinct.removeWhere((c) => c == 'All Categories');
-    return ['All Categories']..addAll(distinct);
+    return ['All Categories', ...distinct];
   }
 
   final List<InventoryItem> _defaultInventoryItems = [

@@ -1,6 +1,6 @@
 -- POS Database Schema
 -- Database: cpos.db (SQLite)
--- Version: 4
+-- Version: 5
 
 -- ============================================
 -- Table: categories
@@ -59,3 +59,21 @@ CREATE TABLE sale_items (
   FOREIGN KEY (saleId) REFERENCES sales (id) ON DELETE CASCADE,
   FOREIGN KEY (inventoryId) REFERENCES inventory (id)
 );
+
+-- ============================================
+-- Table: sync_queue
+-- v5 — tracks local mutations waiting to be pushed to the server.
+-- Rows stay `pending` until the sync round-trip succeeds, then
+-- become `sent` and are pruned after 30 days.
+-- ============================================
+CREATE TABLE IF NOT EXISTS sync_queue (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    table_name VARCHAR(255) NOT NULL,
+    action ENUM('insert', 'update', 'delete') NOT NULL,
+    data_json JSON NOT NULL,
+    status ENUM('pending', 'sent') NOT NULL DEFAULT 'pending',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_sync_queue_status
+  ON sync_queue (status);

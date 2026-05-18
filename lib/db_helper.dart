@@ -280,8 +280,10 @@ class DatabaseHelper {
     final db = await database;
     final catName  = item['category']  as String? ?? 'Uncategorized';
     final categoryId = await _getCategoryIdByName(catName);
-    if (categoryId == null) throw Exception(
+    if (categoryId == null) {
+      throw Exception(
       'Category "$catName" not found. Create it first.');
+    }
     await db.insert(
       'inventory',
       {
@@ -466,8 +468,10 @@ class DatabaseHelper {
     final db = await database;
     final inUse = await db.query(
       'inventory', where: 'categoryId = ?', whereArgs: [id]);
-    if (inUse.isNotEmpty) throw Exception(
+    if (inUse.isNotEmpty) {
+      throw Exception(
       'Cannot delete category: ${inUse.length} item(s) are using it.');
+    }
     await db.delete('categories', where: 'id = ?', whereArgs: [id]);
   }
 

@@ -85,7 +85,9 @@ class SyncService {
 
     if (failures.isNotEmpty) {
       if (kDebugMode) {
-        for (final f in failures) debugPrint('Sync push failure: $f');
+        for (final f in failures) {
+          debugPrint('Sync push failure: $f');
+        }
       }
       onStatus?.call(
         '${failures.length} change(s) could not be pushed — will retry next sync.',
@@ -205,7 +207,9 @@ class SyncService {
         where: 'id IN ($ph)',
         whereArgs: ids,
       );
-      for (var r in hits) localIds.add(r['id'] as String);
+      for (var r in hits) {
+        localIds.add(r['id'] as String);
+      }
     }
 
     var inserted = 0;
@@ -261,7 +265,9 @@ class SyncService {
         where: 'id IN ($ph)',
         whereArgs: ids,
       );
-      for (var r in hits) localIds.add(r['id'] as String);
+      for (var r in hits) {
+        localIds.add(r['id'] as String);
+      }
     }
 
     var inserted = 0;
@@ -311,7 +317,9 @@ class SyncService {
         where: 'id IN ($ph)',
         whereArgs: ids,
       );
-      for (var r in hits) localIds.add(r['id'] as String);
+      for (var r in hits) {
+        localIds.add(r['id'] as String);
+      }
     }
 
     var inserted = 0;
@@ -366,7 +374,9 @@ class SyncService {
         where: 'id IN ($ph)',
         whereArgs: ids,
       );
-      for (var r in hits) localIds.add(r['id'] as String);
+      for (var r in hits) {
+        localIds.add(r['id'] as String);
+      }
     }
 
     var inserted = 0;
