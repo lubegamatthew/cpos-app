@@ -5,7 +5,7 @@ import 'package:sqflite/sqflite.dart' show ConflictAlgorithm;
 import '../db_helper.dart' show DatabaseHelper;
 
 /// Base URL for the remote sync endpoint.
-const _baseUrl = 'https://chillonpos.is-great.net';
+const _baseUrl = 'https://chillionpos.great-site.net';
 
 /// Low-level HTTPS client that accepts any server certificate.
 ///
