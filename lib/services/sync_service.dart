@@ -174,7 +174,12 @@ typedef _SyncResp = ({int statusCode, String body});
       <int>[],
       (list, chunk) => list..addAll(chunk),
     );
-    return (statusCode: res.statusCode, body: utf8.decode(bytes));
+    final rawBody = utf8.decode(bytes);
+    // Strip ad injection from free hosts (wrap response in character markers)
+    // InfinityFree injects: <script...>...</script><html>...</html>
+    final match = RegExp(r'\{"status".*\}|\{"synced_at".*\}').firstMatch(rawBody);
+    final cleanBody = match?.group(0) ?? rawBody;
+    return (statusCode: res.statusCode, body: cleanBody);
   }
 
   /// Low-level POST; cert bypass scoped to a single factory.
