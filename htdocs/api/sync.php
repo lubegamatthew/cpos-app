@@ -3,6 +3,9 @@
 // Receives a single push payload from the Flutter app, upserts into MySQL,
 // then returns all rows changed since $since (for the pull step).
 
+// Enable output buffering to prevent ad injection from free hosts
+@ob_start();
+
 // Re-enable errors in this script so any SQL crash is visible in the JSON
 // response rather than being swallowed by InfinityFree's display_errors=0.
 @ini_set('display_errors', '1');

@@ -2,6 +2,9 @@
 // htdocs/api/db.php
 // InfinityFree MySQL connection + idempotent table creation.
 
+// Enable output buffering early to prevent ad injection on free hosts
+@ob_start();
+
 // ── Real InfinityFree credentials ───────────────────────────────────────────
 $host     = 'sql101.infinityfree.com';
 $dbname   = 'if0_40026929_chillion_pos';
