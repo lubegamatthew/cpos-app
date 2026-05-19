@@ -16,9 +16,9 @@ class SyncService {
   static Future<bool> sync({
     void Function(String message)? onStatus,
   }) async {
-    _reconciledThisRound = false;   // allow reconciliation this round
+    _reconciledThisRound = false; // allow reconciliation this round
     await _pushLocalQueue(onStatus: onStatus);
-    _reconciledThisRound = true;    // prevent double-enqueue this tap
+    _reconciledThisRound = true; // prevent double-enqueue this tap
     final changed = await _pullRemoteChanges(onStatus: onStatus);
     return changed;
   }
@@ -48,10 +48,10 @@ class SyncService {
       final qid = row['id'] as int;
       try {
         final body = {
-          'queue_id':   qid,
+          'queue_id': qid,
           'table_name': row['table_name'],
-          'action':     row['action'],
-          'data_json':  row['data_json'],
+          'action': row['action'],
+          'data_json': row['data_json'],
           'created_at': row['created_at'],
         };
         final rawBody = jsonEncode(body);
@@ -90,7 +90,9 @@ class SyncService {
 
     if (failures.isNotEmpty) {
       if (kDebugMode) {
-        for (final f in failures) debugPrint('Sync push failure: $f');
+        for (final f in failures) {
+          debugPrint('Sync push failure: $f');
+        }
       }
       onStatus?.call(
         '${failures.length} change(s) could not be pushed — will retry.',
@@ -159,7 +161,8 @@ class SyncService {
       final list = (entry.value as List?)?.cast<Map<String, dynamic>>();
       if (list == null || list.isEmpty) continue;
 
-      int newCount = 0, updCount = 0;
+      int newCount = 0;
+      int updCount = 0;
 
       switch (entry.key) {
         case 'inventory':
@@ -179,7 +182,9 @@ class SyncService {
       }
 
       final sum = newCount + updCount;
-      if (sum > 0) byTable[entry.key] = sum;
+      if (sum > 0) {
+        byTable[entry.key] = sum;
+      }
       totalChanged += sum;
     }
 
@@ -217,7 +222,9 @@ class SyncService {
         where: 'id IN ($ph)',
         whereArgs: ids,
       );
-      for (final r in hits) localIds.add(r['id'] as String);
+      for (final r in hits) {
+        localIds.add(r['id'] as String);
+      }
     }
 
     var inserted = 0;
@@ -271,7 +278,9 @@ class SyncService {
         where: 'id IN ($ph)',
         whereArgs: ids,
       );
-      for (final r in hits) localIds.add(r['id'] as String);
+      for (final r in hits) {
+        localIds.add(r['id'] as String);
+      }
     }
 
     var inserted = 0;
@@ -319,7 +328,9 @@ class SyncService {
         where: 'id IN ($ph)',
         whereArgs: ids,
       );
-      for (final r in hits) localIds.add(r['id'] as String);
+      for (final r in hits) {
+        localIds.add(r['id'] as String);
+      }
     }
 
     var inserted = 0;
@@ -372,7 +383,9 @@ class SyncService {
         where: 'id IN ($ph)',
         whereArgs: ids,
       );
-      for (final r in hits) localIds.add(r['id'] as String);
+      for (final r in hits) {
+        localIds.add(r['id'] as String);
+      }
     }
 
     var inserted = 0;
@@ -427,14 +440,47 @@ class SyncService {
   static Future<void> _reconcileDirtyRows({
     void Function(String message)? onStatus,
   }) async {
-    if (_reconciledThisRound) return;
+    if (_reconciledThisRound) {
+      return;
+    }
 
     // Per-table column lists MUST match the physical DB column names.
     const tables = [
-      ('inventory',  ['id','name','categoryId','quantity','buyPrice','sellPrice','unit','description','createdAt']),
-      ('categories', ['id','name','description','createdAt']),
-      ('sales',      ['id','customerName','customerPhone','totalAmount','totalProfit','paymentMethod','status','notes','createdAt']),
-      ('sale_items', ['id','saleId','inventoryId','itemName','quantity','buyPrice','sellPrice','totalCost','totalRevenue','profit','createdAt']),
+      (
+        'inventory',
+        ['id', 'name', 'categoryId', 'quantity', 'buyPrice', 'sellPrice', 'unit', 'description', 'createdAt'],
+      ),
+      ('categories', ['id', 'name', 'description', 'createdAt']),
+      (
+        'sales',
+        [
+          'id',
+          'customerName',
+          'customerPhone',
+          'totalAmount',
+          'totalProfit',
+          'paymentMethod',
+          'status',
+          'notes',
+          'createdAt',
+        ],
+      ),
+      (
+        'sale_items',
+        [
+          'id',
+          'saleId',
+          'inventoryId',
+          'itemName',
+          'quantity',
+          'buyPrice',
+          'sellPrice',
+          'totalCost',
+          'totalRevenue',
+          'profit',
+          'createdAt',
+        ],
+      ),
     ];
 
     int enqueued = 0;
@@ -455,37 +501,48 @@ class SyncService {
           if (str != null) {
             // Every data_json map we write contains "id":"<val>".
             final m = RegExp(r'"id"\s*:\s*"([^"]+)"').firstMatch(str);
-            if (m != null) tracked.add(m.group(1)!);
+            if (m != null) {
+              tracked.add(m.group(1)!);
+            }
           }
         }
       }
 
       // Step 2 – read every row in this table.
       final rows = await db.query(table);
-      if (rows.isEmpty) continue;
+      if (rows.isEmpty) {
+        continue;
+      }
 
       // Step 3 – batch-insert untracked rows into sync_queue.
       final batchIn = db.batch();
       for (final row in rows) {
         final rowId = row['id'] as String?;
-        if (rowId == null || tracked.contains(rowId)) continue;
+        if (rowId == null || tracked.contains(rowId)) {
+          continue;
+        }
 
         final payload = <String, dynamic>{};
         for (final col in columns) {
           final v = row[col];
-          if (v is num)   payload[col] = v.toDouble();
-          else if (v is int) payload[col] = v.toDouble();
-          else if (v is bool) payload[col] = v;
-          else if (v != null) payload[col] = v.toString();
+          if (v is num) {
+            payload[col] = v.toDouble();
+          } else if (v is int) {
+            payload[col] = v.toDouble();
+          } else if (v is bool) {
+            payload[col] = v;
+          } else if (v != null) {
+            payload[col] = v.toString();
+          }
         }
 
         batchIn.insert(
           'sync_queue',
           {
             'table_name': table,
-            'action':     'insert',
-            'data_json':  jsonEncode(payload),
-            'status':     'pending',
+            'action': 'insert',
+            'data_json': jsonEncode(payload),
+            'status': 'pending',
             'created_at': DateTime.now().toIso8601String(),
           },
         );
@@ -498,8 +555,10 @@ class SyncService {
     }
 
     if (enqueued > 0 && onStatus != null) {
-      onStatus('Found $enqueued local record(s) not yet on the server — '
-          'will push now.');
+      onStatus(
+        'Found $enqueued local record(s) not yet on the server — '
+        'will push now.',
+      );
     }
   }
 }

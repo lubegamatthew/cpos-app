@@ -111,23 +111,23 @@ function upsertInventory(PDO $pdo, array $c): int {
          ON DUPLICATE KEY UPDATE
             name        = VALUES(name),
             category_id = VALUES(category_id),
-    quantity    = VALUES(quantity),
-    buy_price   = VALUES(buy_price),
-    sell_price  = VALUES(sell_price),
-    unit        = VALUES(unit),
-    description = VALUES(description),
-    updated_at  = VALUES(updated_at)"
+            quantity    = VALUES(quantity),
+            buy_price   = VALUES(buy_price),
+            sell_price  = VALUES(sell_price),
+            unit        = VALUES(unit),
+            description = VALUES(description),
+            updated_at  = VALUES(updated_at)"
     );
     $stmt->execute([
         $c['id']          ?? '',
         $c['name']        ?? '',
-        $c['categoryId']  ?? '',
+        $c['categoryId']  ?? $c['category_id']  ?? null,
         $c['quantity']    ?? 0,
-        $c['buyPrice']    ?? 0.00,
-        $c['sellPrice']   ?? 0.00,
-        $c['unit']        ?? 'pcs',
-        $c['description'] ?? '',
-        $c['createdAt']   ?? date('Y-m-d H:i:s'),
+        $c['buyPrice']    ?? $c['buy_price']    ?? 0.00,
+        $c['sellPrice']   ?? $c['sell_price']   ?? 0.00,
+        $c['unit']        ?? $c['unit']         ?? 'pcs',
+        $c['description'] ?? $c['description']  ?? '',
+        $c['createdAt']   ?? $c['created_at']   ?? date('Y-m-d H:i:s'),
         date('Y-m-d H:i:s'),
     ]);
     return $stmt->rowCount();
