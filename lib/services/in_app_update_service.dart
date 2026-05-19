@@ -8,7 +8,7 @@ import '../services/app_update_service.dart';
 
 /// In-app update service:
 /// 1. Resolves the APK URL from the GitHub release JSON
-/// 2. Requests storage permission
+/// 2. Stores the APK directly in the permanent download file (no temp file)
 /// 3. Streams the APK download with byte-level progress
 /// 4. Launches the system APK installer
 class InAppUpdateService {
@@ -25,14 +25,11 @@ class InAppUpdateService {
     debugPrint('[InAppUpdate] APK URL: $apkUrl');
 
     // ── 1. Storage permission ───────────────────────────────────────────
-    // No runtime permission needed: path_provider gives us the
-    // app-managed directory where the app can always read and write.
     debugPrint('[InAppUpdate] Using app-managed download directory.');
 
-    // ── 2. File paths ───────────────────────────────────────────────────
+    // ── 2. File path ────────────────────────────────────────────────────
     // Use the app-managed public Downloads folder so we don't need any
-    // runtime storage permissions.  Falls back to a compiled-in path if
-    // path_provider returns null (should never happen on a real device).
+    // runtime storage permissions.
     final externalDir = await getExternalStorageDirectory();
     final downloadsDir = externalDir != null
         ? Directory('${externalDir.path}/Download')
@@ -40,26 +37,24 @@ class InAppUpdateService {
     await downloadsDir.create(recursive: true);
 
     const finalFileName = 'cpos-update.apk';
-    const tempFileName  = 'cpos-update.apk.tmp';
-    final downloadFile   = File('${downloadsDir.path}/$finalFileName');
-    final downloadTmpFile = File('${downloadsDir.path}/$tempFileName');
-    final client    = http.Client();
+    final downloadFile = File('${downloadsDir.path}/$finalFileName');
 
-    // ── 3. Already downloaded — launch installer directly ───────────────
+    // ── 3. Always re-download when the user taps "Update Now" ───────────
+    // An existing file on disk may be from a previous incomplete download or
+    // a stale older release — print the old size so the log makes the
+    // overwrite obvious, then fall through to the fresh download below.
     if (await downloadFile.exists()) {
       final size = await downloadFile.length();
-      debugPrint('[InAppUpdate] APK already on disk ($size bytes)');
-      return _launchInstaller(downloadFile.path);
+      debugPrint('[InAppUpdate] Replacing existing APK ($size bytes) with fresh download…');
     }
 
-    // ── 4. POST / GET with streaming response ───────────────────────────
-    int? fileTotal;
+    // ── 4. Stream download with progress ────────────────────────────────
+    var bytesReceived = 0;
     try {
       debugPrint('[InAppUpdate] Connecting to $apkUrl ...');
-      final response = await client.send(
-        http.Request('GET', Uri.parse(apkUrl))
-          ..headers['Accept'] = 'application/vnd.android.package-archive',
-      ).timeout(const Duration(seconds: 60));
+      final response = await http.get(Uri.parse(apkUrl), headers: {
+        'Accept': 'application/vnd.android.package-archive',
+      }).timeout(const Duration(seconds: 60));
 
       if (response.statusCode != 200) {
         throw InAppUpdateFailed(
@@ -67,26 +62,22 @@ class InAppUpdateService {
         );
       }
 
-      fileTotal = response.contentLength;
+      final fileTotal = response.contentLength;
       debugPrint(
         '[InAppUpdate] Connected. status=${response.statusCode} '
         'size=${fileTotal ?? 'unknown'}',
       );
 
-      // ── 5. Stream → temp file with byte-level progress ───────────────
-      debugPrint('[InAppUpdate] Writing stream → ${downloadTmpFile.path}');
-      var bytesReceived = 0;
-      final sink = downloadTmpFile.openWrite();
-
-      await for (final List<int> chunk in response.stream) {
-        sink.add(chunk);
-        bytesReceived += chunk.length;
-        onProgress(bytesReceived, fileTotal ?? bytesReceived);
-      }
-
-      await sink.close();
+      // Write directly to the final file — if the download fails midway
+      // the file is simply overwritten on the next attempt rather than
+      // leaving a stale .tmp orphan.
+      debugPrint('[InAppUpdate] Writing → ${downloadFile.path}');
+      bytesReceived = await downloadFile.writeAsBytes(
+        response.bodyBytes,
+        flush: true,
+      ).then((f) => f.lengthSync());
       debugPrint(
-        '[InAppUpdate] Stream complete. received=$bytesReceived bytes',
+        '[InAppUpdate] Download complete. received=$bytesReceived bytes',
       );
     } on TimeoutException catch (e) {
       debugPrint('[InAppUpdate] Timeout: $e');
@@ -100,31 +91,23 @@ class InAppUpdateService {
       throw InAppUpdateFailed('Cannot save APK ($e). '
           'Free up storage and try again.');
     } catch (e) {
-      debugPrint('[InAppUpdate] Download error: $e (${e.runtimeType})');
+      debugPrint('[InAppUpdate] Error: $e (${e.runtimeType})');
       throw InAppUpdateFailed('Download failed: $e');
-    } finally {
-      client.close();
     }
 
-    // ── 6. Validate temp file before renaming ───────────────────────────
-    final tmpLength = await downloadTmpFile.length();
-    debugPrint('[InAppUpdate] Temp file size: $tmpLength bytes');
+    // ── 5. Validate downloaded file ────────────────────────────────────
+    final finalSize = await downloadFile.length();
+    debugPrint(
+      '[InAppUpdate] Saved: ${downloadFile.path} ($finalSize bytes)',
+    );
 
-    if (tmpLength == 0) {
-      debugPrint('[InAppUpdate] ERROR — downloaded file is empty');
+    if (finalSize == 0) {
       throw InAppUpdateFailed(
         'Downloaded file is empty. Check your internet and try again.',
       );
     }
 
-    // Rename only after download is fully verified
-    await downloadTmpFile.rename(downloadFile.path);
-    debugPrint(
-      '[InAppUpdate] Saved: ${downloadFile.path} '
-      '(${await downloadFile.length()} bytes)',
-    );
-
-    // ── 7. Launch APK installer ─────────────────────────────────────────
+    // ── 6. Launch APK installer ─────────────────────────────────────────
     debugPrint('[InAppUpdate] Launching installer...');
     return _launchInstaller(downloadFile.path);
   }
