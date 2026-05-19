@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../services/app_update_service.dart';
 import '../services/in_app_update_service.dart';
 import '../services/sync_service.dart';
@@ -535,9 +536,33 @@ class _SettingsPageState extends State<SettingsPage> {
                                     ),
                                   );
                                 },
-                              ),
-                      ),
-                      const SizedBox(height: 16),
+),
+                       ),
+                      if (_syncLog.isNotEmpty && !_syncing)
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton.icon(
+                            onPressed: () {
+                              Clipboard.setData(
+                                ClipboardData(text: _syncLog.join('\n')),
+                              );
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Sync log copied to clipboard'),
+                                  behavior: SnackBarBehavior.floating,
+                                ),
+                              );
+                            },
+                            icon: const Icon(Icons.copy, size: 16),
+                            label: const Text('Copy Log'),
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 4),
+                              textStyle: const TextStyle(fontSize: 12),
+                            ),
+                          ),
+                        ),
+                       const SizedBox(height: 16),
                       SizedBox(
                         width: double.infinity,
                         child: _syncing
