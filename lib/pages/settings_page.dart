@@ -20,7 +20,7 @@ class _SettingsPageState extends State<SettingsPage> {
   double _downloadProgress = 0;
   String _statusText = '';
   bool _syncing = false;
-  String _syncMessage = '';
+  final List<String> _syncLog = [];
 
   @override
   void initState() {
@@ -211,25 +211,36 @@ class _SettingsPageState extends State<SettingsPage> {
   Future<void> _sync() async {
     if (_syncing) return;
     setState(() {
-      _syncing    = true;
-      _syncMessage = 'Starting sync…';
+      _syncing = true;
+      _syncLog.clear();
     });
 
+    void onStatus(String text) {
+      final trimmed = text.trim();
+      if (trimmed.isNotEmpty) {
+        if (mounted) {
+          setState(() => _syncLog.add(trimmed));
+        } else {
+          _syncLog.add(trimmed);
+        }
+      }
+    }
+
     try {
-      final changed = await SyncService.sync(
-        onStatus: (text) {
-          if (mounted) setState(() => _syncMessage = text);
-        },
-      );
-      if (mounted) {
-        setState(() => _syncMessage = changed
-            ? 'Sync complete — remote changes applied.'
-            : 'Sync complete — everything is already up to date.');
-      }
+      onStatus('Starting sync…');
+
+      // ── Push ──────────────────────────────────────────────────────────
+      onStatus('Checking local changes…');
+      await SyncService.pushLocalQueue(onStatus: onStatus);
+
+      // ── Pull ──────────────────────────────────────────────────────────
+      final changed = await SyncService.pullRemoteChanges(onStatus: onStatus);
+
+      onStatus(changed
+          ? 'Sync complete — remote changes applied.'
+          : 'Sync complete — everything is already up to date.');
     } catch (e) {
-      if (mounted) {
-        setState(() => _syncMessage = 'Sync failed: $e');
-      }
+      onStatus('Sync failed: ${e.toString().replaceAll(RegExp(r"\n.*"), "")}');
     } finally {
       if (mounted) setState(() => _syncing = false);
     }
@@ -463,16 +474,68 @@ class _SettingsPageState extends State<SettingsPage> {
                         ],
                       ),
                       const SizedBox(height: 8),
-                      Text(
-                        _syncMessage.isNotEmpty
-                            ? _syncMessage
-                            : 'Push local changes to the server and pull '
-                                'remote records that are missing locally.',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurfaceVariant,
-                            ),
+                      Container(
+                        height: 220,
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.surfaceContainerHighest
+                              .withValues(alpha: 0.5),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        padding: const EdgeInsets.all(12),
+                        child: _syncing && _syncLog.isEmpty
+                            ? const Center(
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    ),
+                                    SizedBox(width: 12),
+                                    Text('Starting…'),
+                                  ],
+                                ),
+                              )
+                            : ListView.builder(
+                                itemCount: _syncLog.length,
+                                itemBuilder: (context, i) {
+                                  final msg = _syncLog[i];
+                                  final isLast = i == _syncLog.length - 1;
+                                  return Padding(
+                                    padding: EdgeInsets.only(
+                                      bottom: isLast ? 0 : 3,
+                                    ),
+                                    child: Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          '› ',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .primary,
+                                            height: 1.4,
+                                          ),
+                                        ),
+                                        Expanded(
+                                          child: Text(
+                                            msg,
+                                            style: const TextStyle(
+                                              fontSize: 13,
+                                              height: 1.4,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              ),
                       ),
                       const SizedBox(height: 16),
                       SizedBox(

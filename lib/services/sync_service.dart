@@ -17,15 +17,15 @@ class SyncService {
     void Function(String message)? onStatus,
   }) async {
     _reconciledThisRound = false; // allow reconciliation this round
-    await _pushLocalQueue(onStatus: onStatus);
+    await pushLocalQueue(onStatus: onStatus);
     _reconciledThisRound = true; // prevent double-enqueue this tap
-    final changed = await _pullRemoteChanges(onStatus: onStatus);
+    final changed = await pullRemoteChanges(onStatus: onStatus);
     return changed;
   }
 
   // ── PUSH ────────────────────────────────────────────────────────────────
 
-  static Future<void> _pushLocalQueue({
+  static Future<void> pushLocalQueue({
     void Function(String message)? onStatus,
   }) async {
     // Reconcile: enqueue any local rows not yet tracked by sync_queue.
@@ -46,6 +46,10 @@ class SyncService {
 
     for (final row in pending) {
       final qid = row['id'] as int;
+      final tbl = row['table_name'] as String? ?? '?';
+      final label = _tableLabel(tbl);
+      onStatus?.call('Pushing $label…');
+
       try {
         final body = {
           'queue_id': qid,
@@ -74,35 +78,41 @@ class SyncService {
 
         if (resp.statusCode >= 200 && resp.statusCode < 300) {
           idsToMark.add(qid);
+          onStatus?.call('  Pushed $label OK');
         } else {
-          failures.add('queue row $qid -> HTTP ${resp.statusCode}');
+          final err =
+              'HTTP ${resp.statusCode}: ${resp.body.isNotEmpty ? resp.body : 'no body'}';
+          failures.add('$label (queue row $qid)');
+          onStatus?.call('  $label FAILED — $err');
         }
       } catch (e) {
-        failures.add('queue row $qid -> $e');
+        failures.add('$label (queue row $qid) -> $e');
+        onStatus?.call('  $label FAILED — $e');
       }
     }
 
     if (idsToMark.isNotEmpty) {
       await DatabaseHelper.instance.markAsSynced(idsToMark);
       await DatabaseHelper.instance.pruneSentQueue(olderThanDays: 30);
-      onStatus?.call('Pushed ${idsToMark.length} change(s) successfully.');
+      onStatus?.call('${idsToMark.length} row(s) pushed to server.');
     }
 
     if (failures.isNotEmpty) {
-      if (kDebugMode) {
-        for (final f in failures) {
-          debugPrint('Sync push failure: $f');
-        }
+      for (final f in failures) {
+        debugPrint('Sync push failure: $f');
       }
       onStatus?.call(
-        '${failures.length} change(s) could not be pushed — will retry.',
+        '${failures.length} push failure(s) — '
+        '${failures.join(', ')} — will retry.',
       );
+    } else if (idsToMark.isEmpty) {
+      onStatus?.call('No local changes to push.');
     }
   }
 
   // ── PULL ────────────────────────────────────────────────────────────────
 
-  static Future<bool> _pullRemoteChanges({
+  static Future<bool> pullRemoteChanges({
     void Function(String message)? onStatus,
   }) async {
     final since = await DatabaseHelper.instance.getLastSyncedAt();
@@ -163,8 +173,11 @@ class SyncService {
 
       int newCount = 0;
       int updCount = 0;
+      final table = entry.key;
 
-      switch (entry.key) {
+      onStatus?.call('Pulling $table (${list.length})…');
+
+      switch (table) {
         case 'inventory':
           (newCount, updCount) = await _upsertInventory(list);
           break;
@@ -183,7 +196,13 @@ class SyncService {
 
       final sum = newCount + updCount;
       if (sum > 0) {
-        byTable[entry.key] = sum;
+        byTable[table] = sum;
+        final label = _tableLabel(table);
+        onStatus?.call(
+          '  $label: +$newCount new, $updCount updated',
+        );
+      } else {
+        onStatus?.call('  ${_tableLabel(table)}: no changes');
       }
       totalChanged += sum;
     }
@@ -195,10 +214,11 @@ class SyncService {
 
     if (totalChanged > 0) {
       final parts = <String>[];
-      byTable.forEach((t, c) => parts.add('$t: $c'));
+      for (final entry in byTable.entries) {
+        parts.add('${_tableLabel(entry.key)}: +${entry.value}');
+      }
       onStatus?.call(
-        'Synced $totalChanged record(s) from server ('
-        '${parts.join(', ')})',
+        'Pull: $totalChanged record(s) applied (${parts.join(', ')}).',
       );
     } else {
       onStatus?.call("You're already fully synced.");
@@ -437,6 +457,24 @@ class SyncService {
   /// Runs at most once per `sync()` call.
   static bool _reconciledThisRound = false;
 
+  /// Returns a human-readable label for a DB table name.
+  static String _tableLabel(String table) {
+    switch (table) {
+      case 'inventory':
+        return 'Inventory';
+      case 'categories':
+        return 'Categories';
+      case 'sales':
+        return 'Sales';
+      case 'sale_items':
+        return 'Sale Items';
+      case 'sync_queue':
+        return 'Sync Queue';
+      default:
+        return table[0].toUpperCase() + table.substring(1);
+    }
+  }
+
   static Future<void> _reconcileDirtyRows({
     void Function(String message)? onStatus,
   }) async {
@@ -448,7 +486,8 @@ class SyncService {
     const tables = [
       (
         'inventory',
-        ['id', 'name', 'categoryId', 'quantity', 'buyPrice', 'sellPrice', 'unit', 'description', 'createdAt'],
+        ['id', 'name', 'categoryId', 'quantity', 'buyPrice',
+          'sellPrice', 'unit', 'description', 'createdAt'],
       ),
       ('categories', ['id', 'name', 'description', 'createdAt']),
       (
